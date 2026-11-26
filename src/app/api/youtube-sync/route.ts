@@ -1,11 +1,28 @@
 import { NextResponse } from "next/server";
 import { requireSiteAdminRequest } from "@/lib/admin-auth";
+import { getSiteContent } from "@/lib/content-store";
 import { parseYoutubeSermonHeadline } from "@/lib/sermon-utils";
 import type { SermonItem } from "@/types/site-content";
 
 export const dynamic = "force-dynamic";
 
-const CHANNEL_VIDEOS_URL = "https://www.youtube.com/@ilkwangucc/videos";
+const FALLBACK_CHANNEL_VIDEOS_URL = "https://www.youtube.com/@ilkwangucc/videos";
+
+function resolveChannelVideosUrl(rawUrl: string | undefined): string {
+  const trimmed = (rawUrl ?? "").trim().replace(/\/+$/, "");
+  if (!trimmed) return FALLBACK_CHANNEL_VIDEOS_URL;
+  try {
+    const parsed = new URL(trimmed);
+    const host = parsed.hostname.toLowerCase();
+    if (host !== "www.youtube.com" && host !== "youtube.com" && host !== "m.youtube.com") {
+      return FALLBACK_CHANNEL_VIDEOS_URL;
+    }
+    const cleanPath = parsed.pathname.replace(/\/(videos|featured|streams|playlists)\/?$/i, "");
+    return `https://www.youtube.com${cleanPath}/videos`;
+  } catch {
+    return FALLBACK_CHANNEL_VIDEOS_URL;
+  }
+}
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
@@ -132,7 +149,13 @@ export async function POST(request: Request) {
       Array.isArray(body.existingYoutubeIds) ? body.existingYoutubeIds : []
     );
 
-    const res = await fetch(CHANNEL_VIDEOS_URL, {
+    const content = await getSiteContent();
+    const channelVideosUrl = resolveChannelVideosUrl(
+      content.churchInfo.youtubeUrl
+    );
+    const churchName = content.churchInfo.name;
+
+    const res = await fetch(channelVideosUrl, {
       headers: { "User-Agent": UA, "Accept-Language": "ko-KR,ko;q=0.9" },
       cache: "no-store",
     });
@@ -166,13 +189,16 @@ export async function POST(request: Request) {
         continue;
       }
 
-      const prelim = parseYoutubeSermonHeadline(v.title);
+      const prelim = parseYoutubeSermonHeadline(v.title, { churchName });
       let finalDate = prelim.date;
       if (!finalDate) {
         finalDate = await fetchPublishDateForVideo(v.videoId);
       }
       const parsed = finalDate
-        ? parseYoutubeSermonHeadline(v.title, { fallbackIsoDate: finalDate })
+        ? parseYoutubeSermonHeadline(v.title, {
+            fallbackIsoDate: finalDate,
+            churchName,
+          })
         : prelim;
 
       newSermons.push({

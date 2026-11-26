@@ -46,9 +46,9 @@ using (
 );
 
 insert into storage.buckets (id, name, public, file_size_limit)
-values ('church-uploads', 'church-uploads', true, 26214400)
+values ('church-uploads', 'church-uploads', true, 52428800)
 on conflict (id) do update
-set public = true, file_size_limit = 26214400;
+set public = true, file_size_limit = 52428800;
 
 create policy "Public read access for church uploads"
 on storage.objects

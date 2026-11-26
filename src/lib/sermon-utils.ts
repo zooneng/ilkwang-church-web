@@ -257,6 +257,7 @@ export function parseYoutubeSermonHeadline(
   options?: {
     readonly fallbackIsoDate?: string | null;
     readonly playlistHint?: string | null;
+    readonly churchName?: string | null;
   }
 ): ParsedYoutubeSermonFields {
   let working = rawHeadline
@@ -391,10 +392,15 @@ export function parseYoutubeSermonHeadline(
   }
 
   // Clean Sermon Title
+  const targetChurchName = options?.churchName?.trim() || "일광교회";
+  const escapedChurchName = targetChurchName.replace(
+    /[.*+?^${}()|[\]\\]/g,
+    "\\$&"
+  );
   let cleanTitle = working
     .replace(/\(\s*[/,·~-]?\s*\)/g, " ")
     .replace(/\[\s*\]/g, " ")
-    .replace(/일광교회/g, " ")
+    .replace(new RegExp(escapedChurchName, "g"), " ")
     .replace(
       /(?:주일\s*대예배|주일\s*예배|주일\s*설교|오전\s*예배|오후\s*예배|오후\s*찬양\s*예배|부활주일\s*설교|수요\s*성경공부|수요\s*예배)/g,
       " "

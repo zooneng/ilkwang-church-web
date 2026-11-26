@@ -60,8 +60,9 @@ When a pastor asks an AI agent to adapt this repository for a new church, execut
    - Update `churchInfo` (church name, denomination, slogan, address, postal code, phone, email, `youtubeUrl`, subway and bus routes, founded year).
    - Update `pastorProfile`, `staff`, `worshipSchedule`, `youthDepartments`, `history`, and `offeringAccounts` using only verified church documents. Never invent founding pastors, anniversary years, room numbers, or bank accounts.
    - Reset `sermons`, `bulletins`, `events`, `notices`, `resources`, and `communityPosts` to empty arrays or verified records from the new church.
-2. **Replace Brand and Hero Graphics** (`public/` and `src/app/layout.tsx`):
-   - Replace `public/logo.png`, `public/logo01.png`, `public/gapck-logo.svg` (denomination emblem), `public/icon.png`, `public/apple-icon.png`, `public/ilkwang01.png` through `public/ilkwang03.png`, `public/pastor.png`, and `public/c01/*` (`Hero001.png` and `cube-1.png` through `cube-6.png`), then update page metadata in `src/app/layout.tsx`.
+2. **Replace Brand Graphics and Static Section Headings** (`public/`, `src/app/`, and `src/components/`):
+   - Replace `public/logo.png`, `public/logo01.png`, `public/gapck-logo.svg` (denomination emblem), `public/icon.png`, `public/apple-icon.png`, `public/ilkwang01.png` through `public/ilkwang03.png`, `public/pastor.png`, and `public/c01/*` (`Hero001.png` and `cube-1.png` through `cube-6.png`).
+   - Run `grep -rn "일광교회" src/` and update static JSX headings and alt labels in `src/app/page.tsx`, `src/app/about/*.tsx`, `src/app/youth/page.tsx`, `src/app/news/*.tsx`, `src/app/worship/sermons/page.tsx`, `src/components/AdminLoginClient.tsx`, and `src/components/AdminSmartAssistant.tsx` (`RootLayout` metadata, `/api/youtube-sync`, `/api/ai-assist`, and `FloatingGuideBot` already read `churchInfo` and `worshipSchedule` dynamically).
 3. **Verify Bulletin Heading Patterns** (`src/lib/hwp-parser.ts`):
    - Test one real `.hwp` or `.hwpx` weekly bulletin from the target church against `/api/parse-bulletin` and adjust section header patterns if the church uses distinct section markers.
 4. **Provision `Supabase` and `Vercel`**:

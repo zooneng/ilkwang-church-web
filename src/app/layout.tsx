@@ -22,27 +22,31 @@ const nanumGothic = Nanum_Gothic({
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: {
-    default: "일광교회 — 행복과 영원으로 초대하는 교회",
-    template: "%s | 일광교회",
-  },
-  description:
-    "대한예수교장로회(합동) 소속 1971년 설립 서울 성북구 일광교회 공식 홈페이지",
-  icons: {
-    icon: [
-      { url: "/gapck-logo.svg", type: "image/svg+xml" },
-      { url: "/icon.png", type: "image/png" },
-    ],
-    apple: "/apple-icon.png",
-  },
-  openGraph: {
-    title: "일광교회 — 행복과 영원으로 초대하는 교회",
-    description:
-      "우리의 목표는 지역 사회에서 소외된 이웃들에게 복음의 빛을 전하고, 모든 사람이 하나님의 사랑 안에서 새로운 삶을 시작하도록 돕는 것입니다.",
-    images: ["/ilkwang03.png"],
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const content = await getSiteContent();
+  const { name, slogan, denomination, foundedYear, shortAddress } =
+    content.churchInfo;
+  const fullTitle = slogan ? `${name} — ${slogan} 교회` : name;
+  return {
+    title: {
+      default: fullTitle,
+      template: `%s | ${name}`,
+    },
+    description: `${denomination} ${foundedYear}년 설립 ${shortAddress} ${name} 공식 홈페이지`,
+    icons: {
+      icon: [
+        { url: "/gapck-logo.svg", type: "image/svg+xml" },
+        { url: "/icon.png", type: "image/png" },
+      ],
+      apple: "/apple-icon.png",
+    },
+    openGraph: {
+      title: fullTitle,
+      description: `${denomination} ${name} 공식 홈페이지`,
+      images: ["/ilkwang03.png"],
+    },
+  };
+}
 
 export default async function RootLayout({
   children,
@@ -80,7 +84,10 @@ export default async function RootLayout({
             worshipSchedule={content.worshipSchedule}
             navigation={content.navigation}
           />
-          <FloatingGuideBot churchInfo={content.churchInfo} />
+          <FloatingGuideBot
+            churchInfo={content.churchInfo}
+            worshipSchedule={content.worshipSchedule}
+          />
         </NavigationProvider>
       </body>
     </html>

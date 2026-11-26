@@ -3,13 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import type { ChurchInfo } from "@/types/site-content";
+import type { ChurchInfo, WorshipServiceItem } from "@/types/site-content";
 
 interface FloatingGuideBotProps {
   readonly churchInfo: ChurchInfo;
+  readonly worshipSchedule?: readonly WorshipServiceItem[];
 }
 
-export function FloatingGuideBot({ churchInfo }: FloatingGuideBotProps) {
+export function FloatingGuideBot({
+  churchInfo,
+  worshipSchedule = [],
+}: FloatingGuideBotProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
@@ -18,10 +22,15 @@ export function FloatingGuideBot({ churchInfo }: FloatingGuideBotProps) {
     return null;
   }
 
+  const worshipSummaryText =
+    worshipSchedule.length > 0
+      ? `${worshipSchedule.map((svc) => `${svc.title}(${svc.time})`).join(", ")} 예배와 기도회를 드립니다.`
+      : `${churchInfo.sundaySummary}에 예배를 드립니다.`;
+
   const answers: Record<string, { readonly title: string; readonly body: string; readonly link: string; readonly linkLabel: string }> = {
     worship: {
       title: "주일 및 주중 예배 시간",
-      body: "주일 1부(오전 9:30), 2부(오전 11:00), 오후예배(오후 1:30)로 모이며, 새벽기도회(월~금 오전 5:00), 수요기도회(수요일 오전 10:30), 금요기도회(매월 첫째 주 금요일 오후 8:00)를 본당에서 드립니다.",
+      body: worshipSummaryText,
       link: "/worship",
       linkLabel: "예배 안내 자세히 보기",
     },
@@ -67,7 +76,8 @@ export function FloatingGuideBot({ churchInfo }: FloatingGuideBotProps) {
 
           <div className="p-4 space-y-3 bg-[#F8FAF8]">
             <div className="bg-white rounded-xl p-3.5 text-xs text-gray-700 leading-relaxed shadow-xs">
-              반갑습니다! 행복과 영원으로 초대하는 <strong>{churchInfo.name}</strong>입니다. 궁금하신 항목을 선택해 주세요.
+              반갑습니다! {churchInfo.slogan}{" "}
+              <strong>{churchInfo.name}</strong>입니다. 궁금하신 항목을 선택해 주세요.
             </div>
 
             <div className="flex flex-wrap gap-2">
