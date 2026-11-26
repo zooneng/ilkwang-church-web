@@ -42,10 +42,10 @@ AGENTS.md와 docs/BUILD-PROCESS-AND-AI-GUIDE.md를 먼저 읽고 이 저장소�
 
 ## 5. Repository Documentation Map
 
-- `docs/BUILD-PROCESS-AND-AI-GUIDE.md`: Step-by-step Korean chronicle of how Ilkwang Church built, debugged, audited, and deployed this site with AI, plus a 5-step guide for other pastors.
-- `AGENTS.md`: Architecture map and 5-step church adaptation checklist read automatically by AI coding tools.
-- `supabase/schema.sql`: Complete `Supabase` Postgres table, `RLS` policies, `church-uploads` storage bucket, and `church_usage_stats()` RPC function.
-- `docs/HANDOVER.md`: Non-technical weekly operator manual and account handover template.
+- [`docs/BUILD-PROCESS-AND-AI-GUIDE.md`](docs/BUILD-PROCESS-AND-AI-GUIDE.md): Step-by-step Korean chronicle of how Ilkwang Church built, debugged, audited, and deployed this site with AI, plus a 5-step guide for other pastors.
+- [`AGENTS.md`](AGENTS.md): Architecture map and 5-step church adaptation checklist read automatically by AI coding tools.
+- [`supabase/schema.sql`](supabase/schema.sql): Complete `Supabase` Postgres table, `RLS` policies, `church-uploads` storage bucket, and `church_usage_stats()` RPC function.
+- [`docs/HANDOVER.md`](docs/HANDOVER.md): Non-technical weekly operator manual and account handover template.
 
 ---
 
@@ -88,7 +88,7 @@ AGENTS.md와 docs/BUILD-PROCESS-AND-AI-GUIDE.md를 먼저 읽고 이 저장소�
 
 ## 5. 상세 문서 안내
 
-- **`docs/BUILD-PROCESS-AND-AI-GUIDE.md`**: 일광교회 홈페이지를 처음부터 끝까지 `AI`와 함께 만들며 겪은 시행착오, 문제 해결 과정, 타 교회 적용 5단계 안내서입니다.
-- **`AGENTS.md`**: `AI` 코딩 도구가 프로젝트를 열자마자 읽는 전체 구조 지도 및 타 교회 개편 점검표입니다.
-- **`supabase/schema.sql`**: `Supabase` 데이터베이스 테이블, 보안 정책 (`RLS`), 파일 버킷, 실시간 용량 조회 함수를 한 번에 생성하는 `SQL` 스크립트입니다.
-- **`docs/HANDOVER.md`**: 비전공자 교역자와 행정 간사를 위한 주간 5분 운영 및 인수인계 매뉴얼입니다.
+- [**`docs/BUILD-PROCESS-AND-AI-GUIDE.md`**](docs/BUILD-PROCESS-AND-AI-GUIDE.md): 일광교회 홈페이지를 처음부터 끝까지 `AI`와 함께 만들며 겪은 시행착오, 문제 해결 과정, 타 교회 적용 5단계 안내서입니다.
+- [**`AGENTS.md`**](AGENTS.md): `AI` 코딩 도구가 프로젝트를 열자마자 읽는 전체 구조 지도 및 타 교회 개편 점검표입니다.
+- [**`supabase/schema.sql`**](supabase/schema.sql): `Supabase` 데이터베이스 테이블, 보안 정책 (`RLS`), 파일 버킷, 실시간 용량 조회 함수를 한 번에 생성하는 `SQL` 스크립트입니다.
+- [**`docs/HANDOVER.md`**](docs/HANDOVER.md): 비전공자 교역자와 행정 간사를 위한 주간 5분 운영 및 인수인계 매뉴얼입니다.
