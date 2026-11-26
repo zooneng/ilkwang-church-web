@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -39,3 +40,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# church runtime data and private local records (keep member PII and 75MB+ media out of git)
+/data/*.json
+/data/*.tmp
+/public/legacy-gallery/
+/public/uploads/*
+!/public/uploads/resources/
+/public/uploads/resources/*
+!/public/uploads/resources/heidelberg-catechism-original.pdf
+/docs/*.private.md

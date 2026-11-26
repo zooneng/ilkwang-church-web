@@ -2,25 +2,61 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1a2744;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-noto-sans-kr), sans-serif;
+  --font-nanum: var(--font-nanum-gothic), sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #ffffff;
+  color: #1f2937;
+  font-family: var(--font-noto-sans-kr), "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  overflow-x: clip;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.font-nanum {
+  font-family: var(--font-nanum-gothic), var(--font-noto-sans-kr), sans-serif;
+}
+
+.font-nanum-bold {
+  font-family: var(--font-nanum-gothic), var(--font-noto-sans-kr), sans-serif;
+  font-weight: 700;
+}
+
+.font-nanum-extrabold {
+  font-family: var(--font-nanum-gothic), var(--font-noto-sans-kr), sans-serif;
+  font-weight: 800;
+}
+
+.font-noto-black {
+  font-family: var(--font-noto-sans-kr), sans-serif;
+  font-weight: 900;
+}
+
+@media (max-width: 639px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }

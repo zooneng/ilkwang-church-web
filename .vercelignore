@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.env*
+!.env.example
+public/legacy-gallery
+public/uploads
+public/c01
+public/ilkwang01.png
+public/ilkwang02.png
+public/ilkwang03.png
+public/pastor.png
+data/site-content.json
+data/legacy-gallery.json
