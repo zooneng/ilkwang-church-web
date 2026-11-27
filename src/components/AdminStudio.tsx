@@ -449,6 +449,9 @@ export function AdminStudio({
   const [newAlbumTagsText, setNewAlbumTagsText] = useState("예배와 절기");
   const [newAlbumTagsTouched, setNewAlbumTagsTouched] = useState(false);
   const [creatingAlbum, setCreatingAlbum] = useState(false);
+  const [stagedGalleryFiles, setStagedGalleryFiles] = useState<readonly File[]>(
+    []
+  );
 
   // Admin-only Main 3D Cube direct upload states
   const [newPhotoTitle, setNewPhotoTitle] = useState("");
@@ -1005,10 +1008,16 @@ export function AdminStudio({
     }
   }
 
-  async function handleCreateGalleryAlbum(files: FileList) {
-    if (files.length === 0) return;
+  async function handleCreateGalleryAlbum(
+    filesInput: FileList | readonly File[]
+  ) {
+    const fileList = Array.from(filesInput);
+    if (fileList.length === 0) return;
     if (!newAlbumTitle.trim()) {
-      setErrorMessage("먼저 앨범 제목을 입력한 뒤 사진이나 동영상을 선택해 주세요.");
+      setStagedGalleryFiles(fileList);
+      setErrorMessage(
+        `사진 ${fileList.length}개를 미리 담아 두었습니다. 위 [1단계: 앨범 제목] 칸에 제목만 적으시고 [담아 둔 파일 ${fileList.length}개 지금 올리기]를 눌러 주세요.`
+      );
       return;
     }
     setCreatingAlbum(true);
@@ -1016,12 +1025,12 @@ export function AdminStudio({
     setToastMessage(null);
     try {
       const uploadedPhotos: { readonly imageUrl: string; readonly caption: string }[] = [];
-      for (let i = 0; i < files.length; i += 1) {
-        const file = files[i]!;
+      for (let i = 0; i < fileList.length; i += 1) {
+        const file = fileList[i]!;
         const uploaded = await uploadAsset(
           file,
           "gallery",
-          `${file.name} (${i + 1}/${files.length})`
+          `${file.name} (${i + 1}/${fileList.length})`
         );
         if (!uploaded) {
           throw new Error(`"${file.name}" 업로드에 실패했습니다.`);
@@ -1060,6 +1069,7 @@ export function AdminStudio({
       setNewAlbumContent("");
       setNewAlbumTagsText("예배와 절기");
       setNewAlbumTagsTouched(false);
+      setStagedGalleryFiles([]);
       setLegacyPage(1);
       setToastMessage(
         `"${newAlbumTitle.trim()}" 앨범(${uploadedPhotos.length}개 항목)이 등록되었습니다.`
@@ -2158,6 +2168,14 @@ export function AdminStudio({
             >
               {largePrint ? "🔍 큰 글씨 보기 켜짐 ✓" : "🔍 큰 글씨로 보기"}
             </button>
+            <a
+              href="/church-admin-easy-manual.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2.5 rounded-full bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs sm:text-sm font-black shadow-xs transition-colors"
+            >
+              📖 그림 설명서 (PDF)
+            </a>
             <button
               type="button"
               onClick={() => setAssistantDrawerOpen(true)}
@@ -2505,19 +2523,29 @@ export function AdminStudio({
                     <h2 className="text-xl sm:text-2xl font-black text-[#1a2744]">
                       어느 작업을 하시겠습니까? 아래 큰 버튼 중 하나만 눌러 주세요
                     </h2>
-                    <button
-                      type="button"
-                      onClick={toggleLargePrint}
-                      className={`px-4 py-2 rounded-xl text-sm font-black transition-colors ${
-                        largePrint
-                          ? "bg-amber-400 text-[#1a2744]"
-                          : "bg-[#E8F5E9] text-[#1B5E20] hover:bg-[#2E7D32] hover:text-white"
-                      }`}
-                    >
-                      {largePrint
-                        ? "🔍 큰 글씨 보기 적용 중 (기본 크기로 돌리기)"
-                        : "🔍 글씨가 작으시면 여기를 눌러 크게 보세요"}
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <a
+                        href="/church-admin-easy-manual.pdf"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 rounded-xl bg-[#1a2744] hover:bg-[#2E7D32] text-white text-sm font-black transition-colors"
+                      >
+                        📖 종이 인쇄용 그림 설명서 (PDF) 열기 ↗
+                      </a>
+                      <button
+                        type="button"
+                        onClick={toggleLargePrint}
+                        className={`px-4 py-2 rounded-xl text-sm font-black transition-colors ${
+                          largePrint
+                            ? "bg-amber-400 text-[#1a2744]"
+                            : "bg-[#E8F5E9] text-[#1B5E20] hover:bg-[#2E7D32] hover:text-white"
+                        }`}
+                      >
+                        {largePrint
+                          ? "🔍 큰 글씨 보기 적용 중 — 다시 누르면 기본 크기"
+                          : "🔍 글씨가 작으시면 여기를 눌러 크게 보세요"}
+                      </button>
+                    </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1 text-sm sm:text-base text-gray-700">
                     <div className="rounded-xl bg-[#F8FAF8] border border-gray-200 px-4 py-3 leading-relaxed">
@@ -3146,44 +3174,64 @@ export function AdminStudio({
         )}
 
         {/* =========================================================
-            TAB 2: SERMONS WITH YOUTUBE OEMBED AUTO-FETCH
+            TAB 2: SERMONS WITH 1-CLICK YOUTUBE SYNC + OPTIONAL MANUAL PASTE
            ========================================================= */}
         {activeTab === "sermons" && (
           <div className="space-y-6">
-            <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 space-y-4">
+            {/* Method 1 (Easiest for Novices): 1-Click Automatic Channel Sync */}
+            <div className="bg-white rounded-2xl border-2 border-[#2E7D32]/35 p-5 sm:p-6 space-y-4 shadow-xs">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-lg sm:text-xl font-black text-[#1a2744]">
-                  새 설교 영상 등록
-                </h2>
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={syncingYtChannel || saving}
-                    onClick={() => void handleSyncYoutubeChannel()}
-                    className="px-3.5 py-1.5 rounded-full border border-[#2E7D32] text-[#2E7D32] hover:bg-[#E8F5E9] text-xs font-bold transition-colors disabled:opacity-60 whitespace-nowrap shrink-0"
-                  >
-                    {syncingYtChannel
-                      ? "채널 확인 중..."
-                      : "↻ 유튜브 채널 최신 설교 불러오기"}
-                  </button>
-                  <Link
-                    href="/worship/sermons"
-                    target="_blank"
-                    className="px-3.5 py-1.5 rounded-full bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0"
-                  >
-                    설교 영상 화면 보기 ↗
-                  </Link>
+                <div className="space-y-1">
+                  <span className="inline-block px-3 py-1 rounded-full bg-[#2E7D32] text-white text-xs sm:text-sm font-black">
+                    방법 1 — 가장 쉬움, 추천
+                  </span>
+                  <h2 className="text-xl sm:text-2xl font-black text-[#1a2744] pt-1">
+                    주소 복사 없이 최신 설교 영상 한 번에 가져오기
+                  </h2>
+                  <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+                    교회 유튜브 채널에 새 설교 영상이 올라갔다면 아래 초록색 버튼만 한 번 누르세요. 제목, 예배 구분, 날짜를 자동으로 찾아 등록합니다.
+                  </p>
                 </div>
+                <Link
+                  href="/worship/sermons"
+                  target="_blank"
+                  className="px-4 py-2 rounded-full bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white text-xs sm:text-sm font-bold transition-colors whitespace-nowrap shrink-0"
+                >
+                  성도 설교 화면 보기 ↗
+                </Link>
+              </div>
+
+              <button
+                type="button"
+                disabled={syncingYtChannel || saving}
+                onClick={() => void handleSyncYoutubeChannel()}
+                className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-base sm:text-lg font-black shadow-md transition-colors disabled:opacity-60"
+              >
+                {syncingYtChannel
+                  ? "교회 유튜브 채널에서 새 설교 찾는 중..."
+                  : "🎬 버튼 한 번으로 최신 설교 자동 불러오기"}
+              </button>
+            </div>
+
+            {/* Method 2: Paste Specific YouTube URL */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 space-y-4">
+              <div>
+                <span className="inline-block px-2.5 py-0.5 rounded-full bg-gray-100 text-[#1a2744] text-xs font-extrabold mb-1">
+                  방법 2 — 개별 영상 직접 등록
+                </span>
+                <h3 className="text-base sm:text-lg font-black text-[#1a2744]">
+                  특정 유튜브 영상 주소를 직접 붙여넣어 올리기
+                </h3>
               </div>
 
               {/* Paste URL + Auto Fetch */}
               <div className="flex flex-col sm:flex-row gap-2.5 bg-[#F8FAF8] p-4 rounded-xl border border-[#2E7D32]/25">
                 <input
                   type="text"
-                  placeholder="유튜브 영상 주소 붙여넣기"
+                  placeholder="1단계: 여기에 유튜브 영상 주소 붙여넣기"
                   value={newSermonUrl}
                   onChange={(e) => setNewSermonUrl(e.target.value)}
-                  className="flex-1 min-w-0 rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm"
+                  className="flex-1 min-w-0 rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm sm:text-base"
                 />
                 <button
                   type="button"
@@ -3191,19 +3239,21 @@ export function AdminStudio({
                   onClick={() => void handleFetchYoutubeMeta()}
                   className="px-5 py-2.5 rounded-xl bg-[#1a2744] hover:bg-[#2E7D32] text-white text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 transition-colors disabled:opacity-60"
                 >
-                  {fetchingYt ? "불러오는 중..." : "유튜브 정보 자동 불러오기"}
+                  {fetchingYt
+                    ? "불러오는 중..."
+                    : "2단계: 유튜브 제목 자동 채우기"}
                 </button>
               </div>
 
               {ytPreviewThumb && (
-                <div className="flex items-center gap-3 text-xs text-gray-600">
+                <div className="flex items-center gap-3 text-xs sm:text-sm text-gray-700 font-semibold">
                   <img
                     src={ytPreviewThumb}
                     alt="유튜브 썸네일 미리보기"
                     className="w-28 aspect-video rounded-lg object-cover border border-gray-200"
                   />
                   <span>
-                    예배 종류, 제목, 성경 본문, 날짜가 입력되었습니다. 확인 후 등록을 눌러 주세요.
+                    예배 종류, 제목, 성경 본문, 날짜가 입력되었습니다. 확인 후 [3단계: 설교 등록하기]를 눌러 주세요.
                   </span>
                 </div>
               )}
@@ -3216,7 +3266,7 @@ export function AdminStudio({
                   onChange={(e) =>
                     setNewSermonService(e.target.value as SermonServiceCategory)
                   }
-                  className="rounded-xl border border-gray-300 px-3 py-2 text-sm font-bold text-[#1a2744]"
+                  className="rounded-xl border border-gray-300 px-3 py-2.5 text-sm font-bold text-[#1a2744]"
                 >
                   {SERVICE_TYPES.map((st) => (
                     <option key={st} value={st}>
@@ -3229,34 +3279,34 @@ export function AdminStudio({
                   placeholder="설교 제목"
                   value={newSermonTitle}
                   onChange={(e) => setNewSermonTitle(e.target.value)}
-                  className="rounded-xl border border-gray-300 px-3.5 py-2 text-sm font-bold"
+                  className="rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm font-bold"
                 />
                 <input
                   type="text"
                   placeholder="본문 말씀 (예: 요한복음 14:1-6)"
                   value={newSermonScripture}
                   onChange={(e) => setNewSermonScripture(e.target.value)}
-                  className="rounded-xl border border-gray-300 px-3.5 py-2 text-sm"
+                  className="rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm"
                 />
                 <input
                   type="text"
                   placeholder="설교자 (선택)"
                   value={newSermonPreacher}
                   onChange={(e) => setNewSermonPreacher(e.target.value)}
-                  className="rounded-xl border border-gray-300 px-3.5 py-2 text-sm"
+                  className="rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm"
                 />
                 <input
                   type="date"
                   value={newSermonDate}
                   onChange={(e) => setNewSermonDate(e.target.value)}
-                  className="rounded-xl border border-gray-300 px-3.5 py-2 text-sm"
+                  className="rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm"
                 />
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-2.5">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-xs font-bold text-gray-500 mr-1">
-                    설교자 빠른 선택:
+                  <span className="text-xs font-bold text-gray-600 mr-1">
+                    설교자 이름 누르면 자동 입력:
                   </span>
                   {[
                     `${draft.pastorProfile.name} 담임목사`,
@@ -3268,7 +3318,7 @@ export function AdminStudio({
                       key={name}
                       type="button"
                       onClick={() => setNewSermonPreacher(name)}
-                      className={`px-2.5 py-1 rounded-full text-xs font-bold border transition-colors ${
+                      className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
                         newSermonPreacher === name
                           ? "bg-[#1a2744] text-white border-[#1a2744]"
                           : "bg-[#F8FAF8] text-gray-700 border-gray-200 hover:border-[#2E7D32]"
@@ -3292,9 +3342,9 @@ export function AdminStudio({
                   type="button"
                   disabled={saving}
                   onClick={() => void handleAddAndPublishSermon()}
-                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#2E7D32] text-white text-sm font-black hover:bg-[#1B5E20] whitespace-nowrap shrink-0 disabled:opacity-60"
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#2E7D32] text-white text-sm font-black hover:bg-[#1B5E20] whitespace-nowrap shrink-0 disabled:opacity-60"
                 >
-                  + 설교 등록하기
+                  3단계: + 설교 등록하기
                 </button>
               </div>
             </div>
@@ -5743,51 +5793,66 @@ export function AdminStudio({
         {activeTab === "gallery" && (
           <div className="space-y-6">
             {/* 1. Create New Gallery Album */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 space-y-4 shadow-xs">
+            <div className="bg-white rounded-2xl border-2 border-[#2E7D32]/30 p-5 sm:p-6 space-y-4 shadow-xs">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-lg sm:text-xl font-black text-[#1a2744]">
-                  새 앨범 등록
-                </h2>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-black text-[#1a2744]">
+                    📷 새 앨범 사진 및 동영상 올리기
+                  </h2>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                    ① 앨범 제목을 먼저 적고 ② 사진이나 영상을 선택하면 바로 등록됩니다.
+                  </p>
+                </div>
                 <Link
                   href="/news/gallery"
                   target="_blank"
-                  className="px-3.5 py-1.5 rounded-full bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0"
+                  className="px-4 py-2 rounded-full bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white text-xs sm:text-sm font-bold transition-colors whitespace-nowrap shrink-0"
                 >
                   앨범 화면 보기 ↗
                 </Link>
               </div>
 
-              <div className="bg-[#F8FAF8] p-4 rounded-xl border border-gray-200 space-y-3.5">
-                <div className="grid grid-cols-1 sm:grid-cols-[1fr_170px] gap-3">
-                  <input
-                    type="text"
-                    placeholder="앨범 제목 (예: 추수감사주일 예배 및 애찬)"
-                    value={newAlbumTitle}
-                    onChange={(e) => {
-                      const nextVal = e.target.value;
-                      setNewAlbumTitle(nextVal);
-                      if (!newAlbumTagsTouched && nextVal.trim()) {
-                        setNewAlbumTagsText(
-                          inferGalleryTagsFromTitle(nextVal).join(", ")
-                        );
-                      }
-                    }}
-                    className="min-w-0 rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm font-bold"
-                  />
-                  <input
-                    type="date"
-                    aria-label="앨범 게시일"
-                    value={newAlbumDate}
-                    onChange={(e) => setNewAlbumDate(e.target.value)}
-                    className="min-w-0 rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm"
-                  />
+              <div className="bg-[#F8FAF8] p-4 sm:p-5 rounded-xl border border-gray-200 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px] gap-3.5">
+                  <div>
+                    <label className="block text-sm font-extrabold text-[#1a2744] mb-1.5">
+                      1단계: 앨범 제목 먼저 적기 *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="예: 추수감사주일 예배 및 애찬"
+                      value={newAlbumTitle}
+                      onChange={(e) => {
+                        const nextVal = e.target.value;
+                        setNewAlbumTitle(nextVal);
+                        if (!newAlbumTagsTouched && nextVal.trim()) {
+                          setNewAlbumTagsText(
+                            inferGalleryTagsFromTitle(nextVal).join(", ")
+                          );
+                        }
+                      }}
+                      className="w-full min-w-0 rounded-xl border-2 border-gray-300 bg-white px-4 py-3 text-base font-bold focus:border-[#2E7D32] focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-extrabold text-[#1a2744] mb-1.5">
+                      행사 날짜
+                    </label>
+                    <input
+                      type="date"
+                      aria-label="앨범 게시일"
+                      value={newAlbumDate}
+                      onChange={(e) => setNewAlbumDate(e.target.value)}
+                      className="w-full min-w-0 rounded-xl border-2 border-gray-300 bg-white px-3.5 py-3 text-base"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <span className="block text-xs font-bold text-gray-600 mb-1.5">
-                    분류 태그 선택
+                  <span className="block text-sm font-extrabold text-[#1a2744] mb-2">
+                    2단계: 어떤 종류의 앨범인가요? — 눌러서 선택
                   </span>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-2">
                     {PRESET_GALLERY_TAGS.map((tag) => {
                       const currentSelected = parseTagsText(newAlbumTagsText);
                       const isSelected = currentSelected.includes(tag);
@@ -5800,10 +5865,10 @@ export function AdminStudio({
                             const next = toggleGalleryTag(currentSelected, tag);
                             setNewAlbumTagsText(next.join(", "));
                           }}
-                          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                          className={`px-3.5 py-2 rounded-full text-xs sm:text-sm font-bold transition-colors ${
                             isSelected
                               ? "bg-[#2E7D32] text-white"
-                              : "bg-white border border-gray-300 text-gray-600 hover:bg-gray-100"
+                              : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"
                           }`}
                         >
                           #{tag}
@@ -5814,34 +5879,66 @@ export function AdminStudio({
                 </div>
 
                 <textarea
-                  rows={3}
-                  placeholder="앨범 설명 본문 (선택)"
+                  rows={2}
+                  placeholder="짧은 앨범 소개글 — 선택 사항이며 안 적으셔도 됩니다"
                   value={newAlbumContent}
                   onChange={(e) => setNewAlbumContent(e.target.value)}
-                  className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed"
+                  className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm sm:text-base leading-relaxed"
                 />
 
-                <label
-                  className={`block w-full sm:w-auto sm:inline-block px-5 py-3 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs sm:text-sm font-black text-center cursor-pointer transition-colors ${
-                    creatingAlbum ? "opacity-60 pointer-events-none" : ""
-                  }`}
-                >
-                  {creatingAlbum
-                    ? "업로드 중..."
-                    : "+ 사진 또는 동영상 선택 후 등록"}
-                  <input
-                    type="file"
-                    multiple
-                    accept={ADMIN_GALLERY_MEDIA_ACCEPT}
-                    className="hidden"
-                    onChange={async (e) => {
-                      const files = e.target.files;
-                      if (!files || files.length === 0) return;
-                      await handleCreateGalleryAlbum(files);
-                      e.target.value = "";
-                    }}
-                  />
-                </label>
+                {stagedGalleryFiles.length > 0 && (
+                  <div className="rounded-xl bg-amber-50 border-2 border-amber-400 p-4 flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm sm:text-base font-black text-amber-950">
+                      📷 선택한 파일 {stagedGalleryFiles.length}개가 준비되어 있습니다. 위 1단계 제목을 적으셨다면 오른쪽 버튼을 눌러 주세요!
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={creatingAlbum}
+                        onClick={() =>
+                          void handleCreateGalleryAlbum(stagedGalleryFiles)
+                        }
+                        className="px-5 py-2.5 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-sm font-black shadow-xs transition-colors"
+                      >
+                        ✓ 담아 둔 파일 {stagedGalleryFiles.length}개 지금 올리기
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStagedGalleryFiles([])}
+                        className="px-3 py-2.5 rounded-xl bg-white border border-gray-300 text-xs font-bold text-gray-700"
+                      >
+                        취소
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2 pt-1">
+                  <p className="text-sm font-extrabold text-[#1a2744]">
+                    3단계: 아래 초록색 버튼을 눌러 사진이나 동영상을 골라 주세요
+                  </p>
+                  <label
+                    className={`block w-full sm:w-auto sm:inline-block px-7 py-3.5 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-base font-black text-center cursor-pointer shadow-sm transition-colors ${
+                      creatingAlbum ? "opacity-60 pointer-events-none" : ""
+                    }`}
+                  >
+                    {creatingAlbum
+                      ? "사진 및 동영상 올리는 중..."
+                      : "📷 사진 또는 동영상 선택해 바로 올리기"}
+                    <input
+                      type="file"
+                      multiple
+                      accept={ADMIN_GALLERY_MEDIA_ACCEPT}
+                      className="hidden"
+                      onChange={async (e) => {
+                        const files = e.target.files;
+                        if (!files || files.length === 0) return;
+                        await handleCreateGalleryAlbum(files);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
             </div>
 

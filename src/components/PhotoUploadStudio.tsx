@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { AdminPaginationBar } from "@/components/AdminPaginationBar";
 import type { AdminRole } from "@/lib/admin-auth";
 import { uploadAssetClient } from "@/lib/client-upload";
@@ -37,12 +37,53 @@ function toggleTagItem(
     : [...current, tag];
 }
 
+function subscribeLargePrintStore(onStoreChange: () => void): () => void {
+  if (typeof window === "undefined") return () => undefined;
+  window.addEventListener("storage", onStoreChange);
+  window.addEventListener("church-large-print-change", onStoreChange);
+  return () => {
+    window.removeEventListener("storage", onStoreChange);
+    window.removeEventListener("church-large-print-change", onStoreChange);
+  };
+}
+
+function readLargePrintSnapshot(): boolean {
+  try {
+    return window.localStorage.getItem("church_admin_large_print") === "1";
+  } catch {
+    return false;
+  }
+}
+
+function readLargePrintServerSnapshot(): boolean {
+  return false;
+}
+
 export function PhotoUploadStudio({
   initialAlbums,
   role,
   authRequired,
 }: PhotoUploadStudioProps) {
   const router = useRouter();
+  const largePrint = useSyncExternalStore(
+    subscribeLargePrintStore,
+    readLargePrintSnapshot,
+    readLargePrintServerSnapshot
+  );
+
+  function toggleLargePrint() {
+    try {
+      const next = !readLargePrintSnapshot();
+      window.localStorage.setItem(
+        "church_admin_large_print",
+        next ? "1" : "0"
+      );
+      window.dispatchEvent(new Event("church-large-print-change"));
+    } catch {
+      // Ignore storage write restrictions
+    }
+  }
+
   const [albums, setAlbums] =
     useState<readonly LegacyGalleryAlbum[]>(initialAlbums);
   const [newTitle, setNewTitle] = useState("");
@@ -52,6 +93,7 @@ export function PhotoUploadStudio({
   ]);
   const [tagsManuallyEdited, setTagsManuallyEdited] = useState(false);
   const [newContent, setNewContent] = useState("");
+  const [stagedFiles, setStagedFiles] = useState<readonly File[]>([]);
 
   const [uploadingStatus, setUploadingStatus] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -80,7 +122,7 @@ export function PhotoUploadStudio({
     return (
       <p
         role={inlineFeedback.ok ? "status" : "alert"}
-        className={`text-xs font-bold ${
+        className={`text-sm font-bold ${
           inlineFeedback.ok ? "text-[#2E7D32]" : "text-red-700"
         }`}
       >
@@ -142,19 +184,23 @@ export function PhotoUploadStudio({
     safePage * ALBUMS_PER_PAGE
   );
 
-  async function handleCreateAlbumWithMedia(files: FileList) {
+  async function handleCreateAlbumWithMedia(
+    filesInput: FileList | readonly File[]
+  ) {
+    const fileList = Array.from(filesInput);
+    if (fileList.length === 0) return;
+
     const title = newTitle.trim();
     if (!title) {
-      setErrorMsg("먼저 앨범 제목을 입력한 뒤 사진이나 동영상을 선택해 주세요.");
+      setStagedFiles(fileList);
+      setErrorMsg(null);
       showInlineFeedback(
         "new-album",
         false,
-        "먼저 앨범 제목을 입력해 주세요."
+        `사진 ${fileList.length}개를 미리 담아 두었습니다. 위 [1단계: 앨범 제목] 칸에 제목만 적으시고 [담아 둔 파일 ${fileList.length}개 지금 올리기]를 눌러 주세요.`
       );
       return;
     }
-    const fileList = Array.from(files);
-    if (fileList.length === 0) return;
 
     setErrorMsg(null);
     setToastMsg(null);
@@ -163,7 +209,7 @@ export function PhotoUploadStudio({
       for (let i = 0; i < fileList.length; i += 1) {
         const f = fileList[i]!;
         setUploadingStatus(
-          `미디어 업로드 중 (${i + 1}/${fileList.length}): ${f.name}`
+          `사진 및 영상 올리는 중 (${i + 1}/${fileList.length}): ${f.name}`
         );
         const uploaded = await uploadAssetClient(f, "gallery");
         uploadedPhotos.push({ imageUrl: uploaded.url });
@@ -197,14 +243,15 @@ export function PhotoUploadStudio({
       setNewSelectedTags(["예배와 절기"]);
       setTagsManuallyEdited(false);
       setNewContent("");
+      setStagedFiles([]);
       setPage(1);
       setToastMsg(
-        `"${title}" 앨범에 ${uploadedPhotos.length}개 항목이 등록되었습니다.`
+        `"${title}" 앨범에 사진 및 영상 ${uploadedPhotos.length}개가 등록되었습니다.`
       );
       showInlineFeedback(
         "new-album",
         true,
-        `"${title}" 앨범을 등록했습니다 (${uploadedPhotos.length}개 항목).`
+        `"${title}" 앨범이 등록되었습니다 (${uploadedPhotos.length}개 항목).`
       );
       router.refresh();
     } catch (err: unknown) {
@@ -331,20 +378,43 @@ export function PhotoUploadStudio({
         <div className="max-w-[1200px] mx-auto px-5 sm:px-6 py-6 sm:py-7 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <span className="inline-block px-3 py-0.5 rounded-full bg-[#2E7D32] text-xs font-bold mb-2">
-              {role === "photo_admin" ? "사진 업로드 계정" : "사이트 관리자"}
+              {role === "photo_admin" ? "사진 업로드 전용 계정" : "사이트 관리자"}
             </span>
             <h1 className="text-xl sm:text-2xl font-black">
-              앨범 사진 및 영상 업로드
+              교회 앨범 사진 및 동영상 올리기
             </h1>
+            <p className="text-xs sm:text-sm text-white/80 mt-1">
+              ① 앨범 제목을 먼저 적고 ② 사진이나 영상을 고르면 홈페이지 앨범에 바로 올라갑니다.
+            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleLargePrint}
+              aria-pressed={largePrint}
+              className={`px-4 py-2 rounded-full border text-xs sm:text-sm font-extrabold transition-colors ${
+                largePrint
+                  ? "bg-amber-400 border-amber-300 text-[#1a2744]"
+                  : "bg-white/10 hover:bg-white/20 border-white/30 text-white"
+              }`}
+            >
+              {largePrint ? "🔍 큰 글씨 보기 켜짐 ✓" : "🔍 큰 글씨로 보기"}
+            </button>
+            <a
+              href="/church-admin-easy-manual.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-white text-xs sm:text-sm font-bold transition-colors"
+            >
+              📖 쉬운 그림 설명서
+            </a>
             {role === "site_admin" && (
               <Link
-                href="/admin?tab=gallery"
+                href="/admin"
                 className="px-4 py-2 rounded-full bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs sm:text-sm font-bold transition-colors"
               >
-                관리자 모드 →
+                🏠 관리자 첫 화면 →
               </Link>
             )}
             <Link
@@ -370,16 +440,19 @@ export function PhotoUploadStudio({
         </div>
       </div>
 
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-5 sm:pt-6 space-y-6">
+      <div
+        className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-5 sm:pt-6 space-y-6"
+        style={largePrint ? { zoom: 1.08 } : undefined}
+      >
         {uploadingStatus && (
-          <div className="rounded-xl bg-blue-50 border border-blue-300 px-4 py-3.5 text-sm font-bold text-blue-900">
+          <div className="rounded-xl bg-blue-50 border border-blue-300 px-4 py-3.5 text-sm sm:text-base font-bold text-blue-900">
             {uploadingStatus}
           </div>
         )}
         {toastMsg && (
           <div
             role="status"
-            className="rounded-xl bg-[#E8F5E9] border border-[#2E7D32] px-4 py-3.5 flex items-center justify-between gap-3 text-sm font-bold text-[#1B5E20]"
+            className="rounded-xl bg-[#E8F5E9] border border-[#2E7D32] px-4 py-3.5 flex items-center justify-between gap-3 text-sm sm:text-base font-bold text-[#1B5E20]"
           >
             <span>{toastMsg}</span>
             <button
@@ -400,22 +473,29 @@ export function PhotoUploadStudio({
           </div>
         )}
 
-        {/* 1. Upload New Album */}
-        <section className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 space-y-4 shadow-xs">
-          <h2 className="text-lg sm:text-xl font-black text-[#1a2744]">
-            새 앨범 등록
-          </h2>
+        {/* 1. Upload New Album (Clear 3-Step Visual Box) */}
+        <section className="bg-white rounded-2xl border-2 border-[#2E7D32]/30 p-5 sm:p-6 space-y-4 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-[#1a2744]">
+                📷 새 앨범 사진 및 동영상 올리기
+              </h2>
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                아이폰을 포함한 휴대폰이나 카메라로 찍은 사진 여러 장을 한꺼번에 선택해 올릴 수 있습니다.
+              </p>
+            </div>
+          </div>
 
-          <div className="bg-[#F8FAF8] p-4 rounded-xl border border-gray-200 space-y-3.5">
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_170px] gap-3">
+          <div className="bg-[#F8FAF8] p-4 sm:p-5 rounded-2xl border border-gray-200 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px] gap-3.5">
               <div>
-                <label className="block text-xs font-bold text-gray-600 mb-1">
-                  앨범 제목 *
+                <label className="block text-sm font-extrabold text-[#1a2744] mb-1.5">
+                  1단계: 앨범 제목 먼저 적기 *
                 </label>
                 <input
                   type="text"
                   maxLength={150}
-                  placeholder="예: 추수감사주일 예배 및 애찬"
+                  placeholder="예: 추수감사주일 예배 및 성찬식"
                   value={newTitle}
                   onChange={(e) => {
                     const nextVal = e.target.value;
@@ -424,28 +504,28 @@ export function PhotoUploadStudio({
                       setNewSelectedTags(inferGalleryTagsFromTitle(nextVal));
                     }
                   }}
-                  className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm font-bold focus:border-[#2E7D32] focus:outline-none"
+                  className="w-full rounded-xl border-2 border-gray-300 bg-white px-4 py-3 text-base font-bold focus:border-[#2E7D32] focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-600 mb-1">
-                  게시일
+                <label className="block text-sm font-extrabold text-[#1a2744] mb-1.5">
+                  행사 날짜
                 </label>
                 <input
                   type="date"
                   aria-label="앨범 게시일"
                   value={newDate}
                   onChange={(e) => setNewDate(e.target.value)}
-                  className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm focus:border-[#2E7D32] focus:outline-none"
+                  className="w-full rounded-xl border-2 border-gray-300 bg-white px-3.5 py-3 text-base focus:border-[#2E7D32] focus:outline-none"
                 />
               </div>
             </div>
 
             <div>
-              <span className="block text-xs font-bold text-gray-600 mb-1.5">
-                분류 태그 선택 (복수 선택 가능)
+              <span className="block text-sm font-extrabold text-[#1a2744] mb-2">
+                2단계: 어떤 종류의 앨범인가요? — 눌러서 선택
               </span>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-2">
                 {PRESET_GALLERY_TAGS.map((tag) => {
                   const selected = newSelectedTags.includes(tag);
                   return (
@@ -456,10 +536,10 @@ export function PhotoUploadStudio({
                         setTagsManuallyEdited(true);
                         setNewSelectedTags((prev) => toggleTagItem(prev, tag));
                       }}
-                      className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                      className={`px-3.5 py-2 rounded-full text-xs sm:text-sm font-bold transition-colors ${
                         selected
-                          ? "bg-[#2E7D32] text-white"
-                          : "bg-white border border-gray-300 text-gray-600 hover:bg-gray-100"
+                          ? "bg-[#2E7D32] text-white shadow-2xs"
+                          : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"
                       }`}
                     >
                       #{tag}
@@ -470,41 +550,71 @@ export function PhotoUploadStudio({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-600 mb-1">
-                앨범 설명 (선택)
+              <label className="block text-sm font-extrabold text-gray-700 mb-1.5">
+                짧은 앨범 소개글 — 안 적으셔도 됩니다
               </label>
               <textarea
-                rows={3}
+                rows={2}
                 maxLength={5000}
-                placeholder="행사 소개나 짧은 인사말을 입력할 수 있습니다."
+                placeholder="예: 온 성도가 함께 감사 찬양을 드렸습니다."
                 value={newContent}
                 onChange={(e) => setNewContent(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed focus:border-[#2E7D32] focus:outline-none"
+                className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm sm:text-base leading-relaxed focus:border-[#2E7D32] focus:outline-none"
               />
             </div>
 
-            <label
-              className={`block w-full sm:w-auto sm:inline-block px-6 py-3 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-sm font-black text-center cursor-pointer transition-colors ${
-                uploadingStatus ? "opacity-60 pointer-events-none" : ""
-              }`}
-            >
-              {uploadingStatus
-                ? "업로드 중..."
-                : "+ 사진 또는 동영상 선택 후 등록"}
-              <input
-                type="file"
-                multiple
-                accept={GALLERY_FILE_ACCEPT}
-                className="hidden"
-                onChange={async (e) => {
-                  const files = e.target.files;
-                  if (!files || files.length === 0) return;
-                  await handleCreateAlbumWithMedia(files);
-                  e.target.value = "";
-                }}
-              />
-            </label>
-            {renderInlineFeedback("new-album")}
+            {stagedFiles.length > 0 && (
+              <div className="rounded-xl bg-amber-50 border-2 border-amber-400 p-4 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm sm:text-base font-black text-amber-950">
+                  📷 선택한 파일 {stagedFiles.length}개가 준비되어 있습니다. 위 1단계 제목을 적으셨다면 오른쪽 버튼을 눌러 주세요!
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={Boolean(uploadingStatus)}
+                    onClick={() => void handleCreateAlbumWithMedia(stagedFiles)}
+                    className="px-5 py-2.5 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-sm font-black shadow-xs transition-colors"
+                  >
+                    ✓ 담아 둔 파일 {stagedFiles.length}개 지금 올리기
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStagedFiles([])}
+                    className="px-3 py-2.5 rounded-xl bg-white border border-gray-300 text-xs font-bold text-gray-700"
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2 pt-1">
+              <p className="text-sm font-extrabold text-[#1a2744]">
+                3단계: 아래 초록색 버튼을 눌러 사진이나 동영상을 골라 주세요
+              </p>
+              <label
+                className={`block w-full sm:w-auto sm:inline-block px-7 py-3.5 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-base font-black text-center cursor-pointer shadow-sm transition-colors ${
+                  uploadingStatus ? "opacity-60 pointer-events-none" : ""
+                }`}
+              >
+                {uploadingStatus
+                  ? "사진 및 영상 올리는 중..."
+                  : "📷 사진 또는 동영상 선택해 바로 올리기"}
+                <input
+                  type="file"
+                  multiple
+                  accept={GALLERY_FILE_ACCEPT}
+                  className="hidden"
+                  onChange={async (e) => {
+                    const files = e.target.files;
+                    if (!files || files.length === 0) return;
+                    await handleCreateAlbumWithMedia(files);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              {renderInlineFeedback("new-album")}
+            </div>
           </div>
         </section>
 
@@ -525,10 +635,10 @@ export function PhotoUploadStudio({
                     setVisibilityFilter(vis);
                     setPage(1);
                   }}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                  className={`px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-colors ${
                     visibilityFilter === vis
                       ? "bg-[#1a2744] text-white"
-                      : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
+                      : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   {vis}
@@ -592,7 +702,7 @@ export function PhotoUploadStudio({
                             {album.isVisible ? "공개중" : "숨김"}
                           </span>
                           <span className="text-gray-500">{album.date}</span>
-                          <span className="text-gray-400">
+                          <span className="text-gray-500">
                             {album.photos.length}개
                           </span>
                         </div>
@@ -603,8 +713,8 @@ export function PhotoUploadStudio({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 shrink-0">
-                      <label className="px-3 py-2 rounded-lg bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white text-xs font-bold cursor-pointer transition-colors">
-                        + 사진 및 영상 추가
+                      <label className="px-3.5 py-2 rounded-lg bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white text-xs sm:text-sm font-bold cursor-pointer transition-colors">
+                        + 사진 더 넣기
                         <input
                           type="file"
                           multiple
@@ -633,16 +743,16 @@ export function PhotoUploadStudio({
                             `row:${album.id}`
                           )
                         }
-                        className="px-3 py-2 rounded-lg border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                        className="px-3.5 py-2 rounded-lg border border-gray-200 text-xs sm:text-sm font-bold text-gray-700 hover:bg-gray-50"
                       >
                         {album.isVisible ? "숨기기" : "공개하기"}
                       </button>
                       <button
                         type="button"
                         onClick={() => openEditAlbum(album)}
-                        className="px-3 py-2 rounded-lg bg-[#1a2744] text-white text-xs font-bold hover:bg-[#2E7D32] transition-colors"
+                        className="px-3.5 py-2 rounded-lg bg-[#1a2744] text-white text-xs sm:text-sm font-bold hover:bg-[#2E7D32] transition-colors"
                       >
-                        {expanded ? "편집 닫기" : "상세 편집"}
+                        {expanded ? "편집 닫기 ▲" : "제목 및 표지 수정 ▼"}
                       </button>
                       {inlineFeedback?.scope === `row:${album.id}` && (
                         <div className="w-full sm:text-right">
@@ -774,7 +884,7 @@ export function PhotoUploadStudio({
                                 `edit:${album.id}`
                               )
                             }
-                            className="px-5 py-2 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs font-bold"
+                            className="px-5 py-2 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs sm:text-sm font-bold"
                           >
                             앨범 정보 저장
                           </button>
@@ -818,7 +928,7 @@ export function PhotoUploadStudio({
                                   </span>
                                 )}
                               </div>
-                              <div className="p-2 flex items-center justify-between gap-1 text-[11px]">
+                              <div className="p-2 flex items-center justify-between gap-1 text-xs">
                                 <button
                                   type="button"
                                   disabled={isCover}
@@ -835,7 +945,7 @@ export function PhotoUploadStudio({
                                   }
                                   className="font-bold text-[#1a2744] hover:text-[#2E7D32] disabled:opacity-40"
                                 >
-                                  대표 지정
+                                  표지 지정
                                 </button>
                                 <button
                                   type="button"
