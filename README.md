@@ -1,9 +1,9 @@
 # Ilkwang Church Official Website and AI Reference Kit — ilkwang-church-web
 
 > **Created**: 2026-11-12 20:30 KST  
-> **Last updated**: 2026-11-26 12:12 KST  
+> **Last updated**: 2026-11-28 08:40 KST  
 > **Modified by**: Gemini 4 Carbon (High), Antigravity  
-> **Version**: 3.0.0  
+> **Version**: 3.1.0  
 
 Open reference repository of the official website for **Ilkwang Church** (`일광교회`, https://ilkwang.org), shared together with our full build chronicle so fellow pastors and church workers can point AI coding agents (`Claude Code`, `Cursor`, `Antigravity`, `Codex`) at a verified, zero-subscription Korean church web platform.
 
@@ -13,9 +13,10 @@ Many small and midsize churches either pay recurring monthly builder fees or str
 
 ## 2. Core Ministry Features
 
-- **Native Korean `.hwp` and `.hwpx` Bulletin Parser** (`src/lib/hwp-parser.ts`, `/admin?tab=bulletin`): Extracts worship liturgy, scripture, preacher, separated `교회 소식` and `교회 일정` boxes, and congregation celebrations directly from Hancom files (single or multi-file bulk upload) for instant mobile reading without viewer apps, plus collapsible multi-page scan views (`imageUrls`) for historical bulletins.
+- **Native Korean `.hwp` and `.hwpx` Bulletin Parser and Pre-Publish Proofreader** (`src/lib/hwp-parser.ts`, `src/lib/bulletin-typo-checker.ts`, `/admin?tab=bulletin`): Extracts worship liturgy, scripture, preacher, separated `교회 소식` and `교회 일정` boxes, and congregation celebrations directly from Hancom files, then opens a pre-publish check screen that highlights duplicate dates/volumes and common Korean typos in yellow with 1-click auto-fix before posting.
 - **1-Click YouTube Sermon Sync** (`src/app/api/youtube-sync/route.ts`, `/admin?tab=sermons`): Pulls new sermons from a church YouTube `@handle` without an API key and classifies Korean worship service categories automatically.
-- **2-Role Admin and Volunteer Photo Studio** (`src/lib/admin-auth.ts`, `/login`): Separates full administration (`ADMIN_PASSWORD` -> `/admin`) from volunteer album uploads (`PHOTO_ADMIN_PASSWORD` -> `/admin/photos`), with live `Supabase` database and storage quota bars at the top of both screens (`src/components/AdminUsageMeter.tsx`) and click-anchored save confirmations right next to every action button (`src/components/ActionFeedbackBubble.tsx`).
+- **Novice-Friendly, Emoji-Free Admin UX and Volunteer Photo Studio** (`src/lib/admin-auth.ts`, `/login`, `/admin`, `/admin/photos`): Separates full administration (`ADMIN_PASSWORD` -> `/admin`) from volunteer album uploads (`PHOTO_ADMIN_PASSWORD` -> `/admin/photos`), with an uncluttered menu grid, persistent `큰 글씨` mode, password `글자 보기` + Korean/`Caps Lock` keyboard warnings, staged album file protection, live `Supabase` quota bars, and zero OS-dependent emojis for clean Windows rendering.
+- **Editable Hero Backgrounds, KakaoTalk Share Preview, and Logo Studio** (`src/components/AdminStudio.tsx`, `/admin?tab=hero-cube`): Lets staff replace the main sanctuary background, KakaoTalk/SMS OpenGraph share image, middle community photo, subpage banner, logo, and 3D cube photos with 1-click restore to defaults.
 - **iPhone `.heic` and `50 MB` Video Direct Upload** (`src/lib/client-upload.ts`, `src/app/api/upload/presign/route.ts`): Converts `.heic` photos in the browser and uploads media directly to `Supabase` Storage via signed `PUT` URLs with binary magic-byte verification.
 - **No-Code Menus, Custom Boards, and Zero-API Assistant** (`src/components/AdminMenusAndBoardsStudio.tsx`, `src/components/AdminSmartAssistant.tsx`): Create custom ministry boards (such as `/boards/dormitory`), move posts across 7+ boards, receive Newcomer inquiries (`/contact`), export 1-click JSON backups, and consult an offline Korean admin guide bot.
 
@@ -46,6 +47,7 @@ AGENTS.md와 docs/BUILD-PROCESS-AND-AI-GUIDE.md를 먼저 읽고 이 저장소�
 - [`AGENTS.md`](AGENTS.md): Architecture map and 5-step church adaptation checklist read automatically by AI coding tools.
 - [`supabase/schema.sql`](supabase/schema.sql): Complete `Supabase` Postgres table, `RLS` policies, `church-uploads` storage bucket, and `church_usage_stats()` RPC function.
 - [`docs/HANDOVER.md`](docs/HANDOVER.md): Non-technical weekly operator manual and account handover template.
+- [`public/church-admin-easy-manual.pdf`](public/church-admin-easy-manual.pdf): Printable 8-page large-print illustrated A4 PDF manual for pastors, office staff, and photo volunteers (also served at `/church-admin-easy-manual.pdf`).
 
 ---
 
@@ -59,11 +61,12 @@ AGENTS.md와 docs/BUILD-PROCESS-AND-AI-GUIDE.md를 먼저 읽고 이 저장소�
 
 ## 2. 한국 교회 사역 맞춤형 주요 기능
 
-- **한글 주보 자동 추출 및 일괄 등록** (`.hwp`, `.hwpx`, `src/lib/hwp-parser.ts`, `/admin?tab=bulletin`): 매주 작성하시는 한글 주보 파일을 그대로 올리면 예배 순서, 설교 본문, 분리된 **교회 소식**과 **교회 일정**, 축하 소식을 자동 추출해 성도님들이 스마트폰에서 바로 읽으실 수 있습니다. 과거 스캔 주보 이미지 (`imageUrls`) 접기 및 펼치기도 지원합니다.
+- **한글 주보 자동 추출 및 게시 전 오탈자 점검** (`.hwp`, `.hwpx`, `src/lib/hwp-parser.ts`, `src/lib/bulletin-typo-checker.ts`, `/admin?tab=bulletin`): 매주 작성하시는 한글 주보 파일을 그대로 올리면 예배 순서, 설교 본문, 분리된 **교회 소식**과 **교회 일정**, 축하 소식을 자동 추출하며 게시 전에 날짜 및 호수 중복과 자주 틀리는 맞춤법 오타를 노란 형광펜으로 표시해 한 번에 바로잡을 수 있습니다.
 - **유튜브 설교 채널 원클릭 연동** (`src/app/api/youtube-sync/route.ts`, `/admin?tab=sermons`): 별도 `API` 키 발급 없이 교회 유튜브 `@채널주소`만으로 최신 설교 영상을 불러오고 예배 구분을 자동 분류합니다.
-- **2종 관리자 권한 분리 및 실시간 저장 용량 표시** (`src/lib/admin-auth.ts`, `src/components/AdminUsageMeter.tsx`): 전체 사역을 관리하는 **사이트 관리자 모드** (`admin`)와 앨범 업로드만 허용하는 **사진 업로드 전용 계정** (`photo`)을 분리했습니다. 두 화면 최상단에는 `Supabase` 데이터베이스 (`500 MB`)와 사진 및 파일 (`1.0 GB`) 실시간 사용량이 표시되며 저장 버튼을 누른 자리 바로 옆에 확인 문구가 나타납니다 (`src/components/ActionFeedbackBubble.tsx`).
+- **초보자 친화형 무이모지 관리자 화면 및 2종 권한 분리** (`src/lib/admin-auth.ts`, `/login`, `/admin`, `/admin/photos`): 전체 사역을 관리하는 **사이트 관리자** (`admin`)와 앨범 등록만 허용하는 **사진 업로드 전용** (`photo`) 계정을 분리했습니다. 불필요한 설명 문구와 윈도우에서 깨지기 쉬운 이모지를 배제한 직관적 메뉴판, `큰 글씨` 유지 모드, 비밀번호 `글자 보기` 및 한글 입력 경고, 실시간 `Supabase` 용량 표시를 지원합니다.
+- **대표 배경 사진 및 카카오톡 공유 이미지 교체** (`src/components/AdminStudio.tsx`, `/admin?tab=hero-cube`): 첫 화면 상단 본당 배경, 카카오톡 링크 공유 대표 사진, 중간 공동체 소개 사진, 세부 화면 상단 배너, 로고, 3D 큐브 사진 6장을 클릭만으로 교체하고 언제든 기본 사진으로 복원할 수 있습니다.
 - **아이폰 사진 자동 변환 및 대용량 영상 업로드** (`src/lib/client-upload.ts`, `src/app/api/upload/presign/route.ts`): 아이폰 `.heic` 사진을 브라우저에서 자동 변환하고 최대 `50 MB` 동영상까지 서버 용량 제한 없이 `Supabase` 저장소로 직접 업로드합니다.
-- **메뉴 및 맞춤 게시판 생성과 오프라인 운영 도우미** (`src/components/AdminMenusAndBoardsStudio.tsx`, `src/components/AdminSmartAssistant.tsx`): 학사관이나 선교 게시판 같은 맞춤 게시판을 직접 추가하고 7개 이상 게시판 사이에서 글을 자유롭게 이동할 수 있으며 유료 `AI` 키 없이 동작하는 관리자 안내 챗봇과 1클릭 `JSON` 백업을 내장했습니다.
+- **메뉴 및 맞춤 게시판 생성과 오프라인 운영 도우미** (`src/components/AdminMenusAndBoardsStudio.tsx`, `src/components/AdminSmartAssistant.tsx`): 학사관이나 선교 게시판 같은 맞춤 게시판을 직접 추가하고 7개 이상 게시판 사이에서 글을 자유롭게 이동할 수 있으며 유료 `AI` 키 없이 동작하는 관리자 안내 도우미와 1클릭 `JSON` 백업을 내장했습니다.
 
 ## 3. 1분 로컬 실행 방법 (클라우드 설정 전 바로 체험)
 
@@ -92,3 +95,4 @@ AGENTS.md와 docs/BUILD-PROCESS-AND-AI-GUIDE.md를 먼저 읽고 이 저장소�
 - [**`AGENTS.md`**](AGENTS.md): `AI` 코딩 도구가 프로젝트를 열자마자 읽는 전체 구조 지도 및 타 교회 개편 점검표입니다.
 - [**`supabase/schema.sql`**](supabase/schema.sql): `Supabase` 데이터베이스 테이블, 보안 정책 (`RLS`), 파일 버킷, 실시간 용량 조회 함수를 한 번에 생성하는 `SQL` 스크립트입니다.
 - [**`docs/HANDOVER.md`**](docs/HANDOVER.md): 비전공자 교역자와 행정 간사를 위한 주간 5분 운영 및 인수인계 매뉴얼입니다.
+- [**`public/church-admin-easy-manual.pdf`**](public/church-admin-easy-manual.pdf): 컴퓨터가 익숙하지 않은 목회자와 봉사자도 바로 따라 보실 수 있는 8쪽 분량 인쇄용 큰글씨 그림 설명서입니다 (배포 후 `/church-admin-easy-manual.pdf` 경로에서도 바로 열립니다).
