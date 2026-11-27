@@ -16,6 +16,7 @@ interface SiteHeaderProps {
   readonly topBannerNotices: readonly string[];
   readonly navigation?: readonly NavCategoryConfig[];
   readonly adminRole?: AdminRole | null;
+  readonly logoUrl?: string;
 }
 
 const SOLID_HEADER_PREFIXES = [
@@ -33,6 +34,7 @@ export function SiteHeader({
   topBannerNotices,
   navigation = DEFAULT_NAVIGATION,
   adminRole = null,
+  logoUrl = "/gapck-logo.svg",
 }: SiteHeaderProps) {
   const adminActionHref =
     adminRole === "site_admin"
@@ -254,7 +256,7 @@ export function SiteHeader({
               >
                 <div className="shrink-0 w-[28px] h-[40px] mb-[4px]">
                   <img
-                    src="/gapck-logo.svg"
+                    src={logoUrl || "/gapck-logo.svg"}
                     alt={churchName}
                     className="w-[28px] h-[40px] object-contain block"
                   />

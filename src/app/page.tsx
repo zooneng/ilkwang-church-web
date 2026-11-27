@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminEditLink } from "@/components/AdminEditLink";
 import { HeroPhotoCube } from "@/components/HeroPhotoCube";
 import { getSiteContent } from "@/lib/content-store";
 import { getKstDateString, resolveEventIsoDate } from "@/lib/format-utils";
@@ -111,11 +112,17 @@ export default async function HomePage() {
       {/* 1. Main Hero with Preserved Sanctuary Photo & Dynamic 3D Rotating Church Cube */}
       <section className="relative min-h-[560px] sm:min-h-[700px] lg:min-h-[800px] flex items-center justify-center overflow-hidden">
         <img
-          src="/c01/Hero001.png"
-          alt="일광교회 본당 예배"
+          src={content.churchInfo.heroBackgroundUrl?.trim() || "/c01/Hero001.png"}
+          alt={`${content.churchInfo.name} 본당 예배`}
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-[#1a2744]/85" />
+        <AdminEditLink
+          href="/admin?tab=hero-cube"
+          className="absolute top-28 right-5 z-30 px-4 py-2 rounded-full bg-white/95 text-[#1a2744] hover:bg-[#2E7D32] hover:text-white text-xs sm:text-sm font-black shadow-lg transition-colors"
+        >
+          ✎ 배경 및 대표 사진 변경
+        </AdminEditLink>
 
         <div className="relative z-10 max-w-[1400px] mx-auto px-5 sm:px-6 pt-20 pb-28 sm:pt-24 sm:pb-32 lg:py-16 w-full flex flex-col lg:flex-row items-center justify-center lg:gap-12 min-h-[560px] sm:min-h-[700px] lg:min-h-[800px]">
           <div className="max-w-2xl w-full text-center lg:text-left lg:pl-[50px]">
@@ -415,16 +422,16 @@ export default async function HomePage() {
       {/* 5. MISSION STATEMENT BANNER */}
       <section className="relative py-16 sm:py-24 bg-[#1a2744] overflow-hidden">
         <img
-          src="/ilkwang01.png"
-          alt="일광교회 비전"
+          src={content.churchInfo.missionBackgroundUrl?.trim() || "/ilkwang01.png"}
+          alt={`${content.churchInfo.name} 비전`}
           className="absolute inset-0 w-full h-full object-cover opacity-20"
         />
         <div className="relative z-10 max-w-[1400px] mx-auto px-5 sm:px-6">
           <div className="grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
             <div className="rounded-2xl overflow-hidden shadow-2xl max-w-md mx-auto w-full border-2 border-white/20">
               <img
-                src="/c01/cube-1.png"
-                alt="일광교회 공동체"
+                src={content.churchInfo.missionCardImageUrl?.trim() || "/c01/cube-1.png"}
+                alt={`${content.churchInfo.name} 공동체`}
                 className="w-full aspect-[4/3] object-cover"
               />
             </div>

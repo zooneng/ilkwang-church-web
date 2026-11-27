@@ -45,7 +45,7 @@ export function SiteFooter({
             >
               <div className="shrink-0 w-[28px] h-[40px] mb-[5px]">
                 <img
-                  src="/gapck-logo.svg"
+                  src={churchInfo.logoUrl?.trim() || "/gapck-logo.svg"}
                   alt={churchInfo.name}
                   className="w-[28px] h-[40px] object-contain block"
                 />

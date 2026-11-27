@@ -25,6 +25,12 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
     busBranch: "1113, 1114, 1164, 1213, 7211, 마을버스 성북06, 성북07",
     sundaySummary: "주일예배 오전 9:30 · 11:00",
     visitSummary: "주일 오전 9:30 · 11:00 · 오후 1:30",
+    heroBackgroundUrl: "/c01/Hero001.png",
+    missionBackgroundUrl: "/ilkwang01.png",
+    missionCardImageUrl: "/c01/cube-1.png",
+    ogShareImageUrl: "/ilkwang03.png",
+    logoUrl: "/gapck-logo.svg",
+    defaultSubpageBannerUrl: "",
   },
   pastorProfile: {
     name: "신점일",

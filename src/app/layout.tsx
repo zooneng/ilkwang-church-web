@@ -27,6 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const { name, slogan, denomination, foundedYear, shortAddress } =
     content.churchInfo;
   const fullTitle = slogan ? `${name} — ${slogan} 교회` : name;
+  const ogImage = content.churchInfo.ogShareImageUrl?.trim() || "/ilkwang03.png";
   return {
     title: {
       default: fullTitle,
@@ -43,7 +44,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: fullTitle,
       description: `${denomination} ${name} 공식 홈페이지`,
-      images: ["/ilkwang03.png"],
+      images: [ogImage],
     },
   };
 }
@@ -68,6 +69,9 @@ export default async function RootLayout({
         <NavigationProvider
           navigation={content.navigation}
           adminRole={adminRole}
+          defaultSubpageBannerUrl={
+            content.churchInfo.defaultSubpageBannerUrl?.trim() ?? ""
+          }
         >
           <SiteHeader
             churchName={content.churchInfo.name}
@@ -77,6 +81,7 @@ export default async function RootLayout({
             topBannerNotices={content.topBannerNotices}
             navigation={content.navigation}
             adminRole={adminRole}
+            logoUrl={content.churchInfo.logoUrl?.trim() || "/gapck-logo.svg"}
           />
           <main className="flex-1">{children}</main>
           <SiteFooter

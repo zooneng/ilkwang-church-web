@@ -12,20 +12,25 @@ const NavigationContext = createContext<readonly NavCategoryConfig[]>(
   DEFAULT_NAVIGATION
 );
 const AdminRoleContext = createContext<AdminRole | null>(null);
+const DefaultSubpageBannerContext = createContext<string>("");
 
 export function NavigationProvider({
   navigation,
   adminRole = null,
+  defaultSubpageBannerUrl = "",
   children,
 }: {
   readonly navigation: readonly NavCategoryConfig[];
   readonly adminRole?: AdminRole | null;
+  readonly defaultSubpageBannerUrl?: string;
   readonly children: React.ReactNode;
 }) {
   return (
     <NavigationContext.Provider value={navigation}>
       <AdminRoleContext.Provider value={adminRole}>
-        {children}
+        <DefaultSubpageBannerContext.Provider value={defaultSubpageBannerUrl}>
+          {children}
+        </DefaultSubpageBannerContext.Provider>
       </AdminRoleContext.Provider>
     </NavigationContext.Provider>
   );
@@ -33,6 +38,10 @@ export function NavigationProvider({
 
 export function useNavigation(): readonly NavCategoryConfig[] {
   return useContext(NavigationContext);
+}
+
+export function useDefaultSubpageBanner(): string {
+  return useContext(DefaultSubpageBannerContext);
 }
 
 export function useAdminRole(): AdminRole | null {

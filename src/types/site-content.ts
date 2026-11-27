@@ -14,6 +14,12 @@ export interface ChurchInfo {
   readonly busBranch: string;
   readonly sundaySummary: string;
   readonly visitSummary: string;
+  readonly heroBackgroundUrl?: string;
+  readonly missionBackgroundUrl?: string;
+  readonly missionCardImageUrl?: string;
+  readonly ogShareImageUrl?: string;
+  readonly logoUrl?: string;
+  readonly defaultSubpageBannerUrl?: string;
 }
 
 export interface CareerEntry {

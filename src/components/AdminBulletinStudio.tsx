@@ -3,6 +3,14 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AdminPaginationBar } from "@/components/AdminPaginationBar";
+import {
+  applyAllBulletinFixes,
+  applyBulletinIssueFix,
+  type BulletinCheckInput,
+  type BulletinIssue,
+  highlightTextWithMatches,
+  inspectBulletinDraft,
+} from "@/lib/bulletin-typo-checker";
 import type { ParsedBulletinDraft } from "@/lib/hwp-parser";
 import {
   composeBulletinFullContent,
@@ -61,6 +69,138 @@ function resolveBulletinParts(bul: BulletinItem): {
   };
 }
 
+function HighlightedText({
+  text,
+  terms,
+}: {
+  readonly text: string;
+  readonly terms: readonly string[];
+}) {
+  const segments = useMemo(
+    () => highlightTextWithMatches(text, terms),
+    [text, terms]
+  );
+  return (
+    <>
+      {segments.map((seg, idx) =>
+        seg.highlighted ? (
+          <mark
+            key={idx}
+            className="bg-amber-200 text-amber-950 font-black px-1 rounded"
+          >
+            {seg.text}
+          </mark>
+        ) : (
+          <span key={idx}>{seg.text}</span>
+        )
+      )}
+    </>
+  );
+}
+
+function BulletinProofreadPanel({
+  issues,
+  onApplySingleFix,
+  onApplyAllFixes,
+}: {
+  readonly issues: readonly BulletinIssue[];
+  readonly onApplySingleFix: (issue: BulletinIssue) => void;
+  readonly onApplyAllFixes: () => void;
+}) {
+  const fixableIssues = issues.filter(
+    (item) =>
+      item.matchedText !== undefined &&
+      item.suggestedText !== undefined &&
+      item.matchedText !== item.suggestedText
+  );
+
+  if (issues.length === 0) {
+    return (
+      <div className="rounded-2xl bg-[#E8F5E9] border-2 border-[#2E7D32]/40 px-4 sm:px-5 py-4 flex items-start gap-3">
+        <span className="text-xl leading-none mt-0.5 shrink-0">✅</span>
+        <div className="space-y-1">
+          <p className="text-sm sm:text-base font-black text-[#1B5E20]">
+            자동 오탈자 및 날짜 점검 완료 — 특이사항 없음
+          </p>
+          <p className="text-xs sm:text-sm text-[#1B5E20]/90 leading-relaxed">
+            예배일 중복, 필수 항목 누락, 자주 틀리는 한글 맞춤법 오타가 발견되지 않았습니다. 아래 성도 성함과 시간만 눈으로 한 번 확인하신 뒤 게시해 주세요.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl bg-amber-50 border-2 border-amber-400 p-4 sm:p-5 space-y-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="text-xl leading-none">🔍</span>
+          <div>
+            <p className="text-sm sm:text-base font-black text-amber-950">
+              게시 전 확인해 볼 항목이 {issues.length}건 있습니다
+            </p>
+            <p className="text-xs sm:text-sm text-amber-900/85 mt-0.5">
+              노란색으로 표시된 부분을 확인하거나 오른쪽 버튼으로 바로 고칠 수 있습니다. 의도한 표현이면 그대로 게시하셔도 됩니다.
+            </p>
+          </div>
+        </div>
+
+        {fixableIssues.length > 0 && (
+          <button
+            type="button"
+            onClick={onApplyAllFixes}
+            className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm font-black shadow-xs transition-colors shrink-0"
+          >
+            ✨ 맞춤법 오타 {fixableIssues.length}건 한 번에 고치기
+          </button>
+        )}
+      </div>
+
+      <ul className="space-y-2">
+        {issues.map((issue) => {
+          const canFix =
+            issue.matchedText !== undefined &&
+            issue.suggestedText !== undefined &&
+            issue.matchedText !== issue.suggestedText;
+          return (
+            <li
+              key={issue.id}
+              className="rounded-xl bg-white border border-amber-200 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2.5"
+            >
+              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm min-w-0 flex-1">
+                <span
+                  className={`px-2.5 py-0.5 rounded-md font-extrabold shrink-0 ${
+                    issue.severity === "warning"
+                      ? "bg-amber-100 text-amber-900"
+                      : "bg-slate-100 text-slate-700"
+                  }`}
+                >
+                  {issue.fieldLabel}
+                </span>
+                <span className="font-bold text-gray-800 break-keep">
+                  {issue.message}
+                </span>
+              </div>
+
+              {canFix && (
+                <button
+                  type="button"
+                  onClick={() => onApplySingleFix(issue)}
+                  className="px-3 py-1.5 rounded-lg bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs font-black whitespace-nowrap shrink-0 transition-colors"
+                >
+                  {issue.suggestedText === ""
+                    ? `'${issue.matchedText}' 지우기`
+                    : `'${issue.matchedText}' → '${issue.suggestedText}' 고치기`}
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 export function AdminBulletinStudio({
   draft,
   saving,
@@ -72,11 +212,12 @@ export function AdminBulletinStudio({
 }: AdminBulletinStudioProps) {
   const bulletins = draft.bulletins;
 
-  // Bulk Upload & Single Composer States
+  // Bulk Upload & Single Pre-Publish Review Composer States
   const [bulkProgress, setBulkProgress] = useState<string | null>(null);
   const [alsoAttachOriginalFile, setAlsoAttachOriginalFile] = useState(false);
 
   const [composerOpen, setComposerOpen] = useState(false);
+  const [showLivePreview, setShowLivePreview] = useState(true);
   const [parsingHwp, setParsingHwp] = useState(false);
   const [parsedSourceName, setParsedSourceName] = useState<string | null>(null);
   const [pendingSourceFile, setPendingSourceFile] = useState<File | null>(null);
@@ -109,6 +250,59 @@ export function AdminBulletinStudio({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<readonly string[]>([]);
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+
+  const composerCheckInput: BulletinCheckInput = useMemo(
+    () => ({
+      date: newDate,
+      volume: newVolume,
+      sermonTitle: newSermonTitle,
+      scripture: newScripture,
+      preacher: newPreacher,
+      worshipOrderText: newWorshipOrderText,
+      churchNews: newChurchNews,
+      scheduleTitle: newScheduleTitle,
+      churchSchedule: newChurchSchedule,
+      celebrationsText: newCelebrationsText,
+    }),
+    [
+      newDate,
+      newVolume,
+      newSermonTitle,
+      newScripture,
+      newPreacher,
+      newWorshipOrderText,
+      newChurchNews,
+      newScheduleTitle,
+      newChurchSchedule,
+      newCelebrationsText,
+    ]
+  );
+
+  const composerIssues = useMemo(
+    () => inspectBulletinDraft(composerCheckInput, bulletins),
+    [composerCheckInput, bulletins]
+  );
+
+  const composerHighlightTerms = useMemo(
+    () =>
+      composerIssues
+        .map((item) => item.matchedText ?? "")
+        .filter((t) => t.trim().length > 0),
+    [composerIssues]
+  );
+
+  function applyFixedInputToComposer(next: BulletinCheckInput) {
+    setNewDate(next.date);
+    setNewVolume(next.volume);
+    setNewSermonTitle(next.sermonTitle);
+    setNewScripture(next.scripture);
+    setNewPreacher(next.preacher);
+    setNewWorshipOrderText(next.worshipOrderText);
+    setNewChurchNews(next.churchNews);
+    setNewScheduleTitle(next.scheduleTitle);
+    setNewChurchSchedule(next.churchSchedule);
+    setNewCelebrationsText(next.celebrationsText);
+  }
 
   const availableYears = useMemo(() => {
     const set = new Set<string>();
@@ -183,6 +377,12 @@ export function AdminBulletinStudio({
     const selectedFiles = Array.from(files);
     if (selectedFiles.length === 0) return;
 
+    // When a single weekly bulletin is selected, open the pre-publish typo review first!
+    if (selectedFiles.length === 1) {
+      await handleSelectHangulForComposer(selectedFiles[0]!);
+      return;
+    }
+
     setParsingHwp(true);
     setBulkProgress(`주보 파일 준비 중 (0/${selectedFiles.length})...`);
     try {
@@ -256,7 +456,6 @@ export function AdminBulletinStudio({
         );
       }
 
-      // Merge and sort newest date first
       const merged = [...createdItems, ...draft.bulletins].sort((a, b) =>
         b.date.localeCompare(a.date)
       );
@@ -294,17 +493,20 @@ export function AdminBulletinStudio({
       setPendingSourceFile(file);
       setParsedSourceName(file.name);
       setComposerOpen(true);
+      setShowLivePreview(true);
 
       const resolvedDate = parsed.date ?? newDate;
       setNewDate(resolvedDate);
       setNewTitle(formatBulletinDateTitle(resolvedDate));
       setNewVolume(parsed.volume ?? formatDefaultBulletinVolume(resolvedDate));
-      if (parsed.sermonTitle) setNewSermonTitle(parsed.sermonTitle);
-      if (parsed.scripture) setNewScripture(parsed.scripture);
-      if (parsed.preacher) setNewPreacher(parsed.preacher);
-      if (parsed.worshipOrder.length > 0) {
-        setNewWorshipOrderText(parsed.worshipOrder.join("\n"));
-      }
+      setNewSermonTitle(parsed.sermonTitle ?? "");
+      setNewScripture(parsed.scripture ?? "");
+      setNewPreacher(
+        parsed.preacher || `${draft.pastorProfile.name} 담임목사`
+      );
+      setNewWorshipOrderText(
+        parsed.worshipOrder.length > 0 ? parsed.worshipOrder.join("\n") : ""
+      );
       const split = splitBulletinNewsAndSchedule(
         parsed.fullContent,
         resolvedDate
@@ -315,7 +517,7 @@ export function AdminBulletinStudio({
       setNewCelebrationsText(parsed.celebrations.join("\n"));
 
       onToast(
-        `"${file.name}" 내용을 불러왔습니다. 확인 후 [주보 등록하기]를 눌러 주세요.`
+        `"${file.name}" 주보를 불러왔습니다. 아래에서 오탈자를 확인하신 뒤 [확인 완료 — 주보 게시하기]를 눌러 주세요.`
       );
     } catch (err: unknown) {
       onError(
@@ -395,7 +597,7 @@ export function AdminBulletinStudio({
       ),
     };
 
-    await onSaveImmediate(nextContent, `"${created.title}"가 게시되었습니다.`);
+    await onSaveImmediate(nextContent, `"${created.title}"가 홈페이지에 게시되었습니다.`);
 
     setNewTitle(formatBulletinDateTitle(newDate));
     setNewVolume(formatDefaultBulletinVolume(newDate));
@@ -408,6 +610,7 @@ export function AdminBulletinStudio({
     setNewCelebrationsText("");
     setPendingSourceFile(null);
     setParsedSourceName(null);
+    setComposerOpen(false);
     setPage(1);
   }
 
@@ -451,7 +654,7 @@ export function AdminBulletinStudio({
         })
       );
       onToast(
-        `"${file.name}" 내용을 반영했습니다. 상단 [변경사항 저장하기]를 눌러 확정해 주세요.`
+        `"${file.name}" 내용을 불러왔습니다. 오탈자를 확인한 뒤 아래 [수정 내용 저장]을 눌러 확정해 주세요.`
       );
     } catch (err: unknown) {
       onError(
@@ -489,54 +692,132 @@ export function AdminBulletinStudio({
     );
   }
 
+  function applyEditedInputToRow(bul: BulletinItem, next: BulletinCheckInput) {
+    const composed = composeBulletinFullContent(
+      {
+        churchNews: next.churchNews,
+        scheduleTitle: next.scheduleTitle,
+        churchSchedule: next.churchSchedule,
+      },
+      next.date
+    );
+    onUpdateBulletins(
+      bulletins.map((b) =>
+        b.id === bul.id
+          ? {
+              ...b,
+              date: next.date,
+              volume: next.volume,
+              sermonTitle: next.sermonTitle,
+              scripture: next.scripture,
+              preacher: next.preacher,
+              worshipOrder:
+                next.worshipOrderText.length > 0
+                  ? next.worshipOrderText.split("\n")
+                  : undefined,
+              churchNews: next.churchNews || undefined,
+              scheduleTitle: next.churchSchedule
+                ? next.scheduleTitle
+                : undefined,
+              churchSchedule: next.churchSchedule || undefined,
+              fullContent: composed || undefined,
+              celebrations:
+                next.celebrationsText.trim().length > 0
+                  ? next.celebrationsText.split("\n")
+                  : undefined,
+            }
+          : b
+      )
+    );
+  }
+
+  const previewWorshipLines = newWorshipOrderText
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const previewNewsLines = newChurchNews
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const previewScheduleLines = newChurchSchedule
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const previewCelebrationLines = newCelebrationsText
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+
   return (
     <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 space-y-5 shadow-xs">
       {/* Clean Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
-        <h2 className="text-lg sm:text-xl font-black text-[#1a2744]">
-          주보 안내 ({bulletins.length}호)
-        </h2>
+        <div>
+          <h2 className="text-xl sm:text-2xl font-black text-[#1a2744]">
+            주보 안내 ({bulletins.length}호)
+          </h2>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">
+            한글 주보 파일을 불러오면 홈페이지에 바로 올라가지 않고 먼저 오탈자 점검 창이 열립니다.
+          </p>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setComposerOpen((prev) => !prev)}
-            className="px-3.5 py-1.5 rounded-full border border-[#2E7D32] text-[#2E7D32] hover:bg-[#E8F5E9] text-xs font-bold transition-colors whitespace-nowrap shrink-0"
+            className="px-4 py-2 rounded-full border border-[#2E7D32] text-[#2E7D32] hover:bg-[#E8F5E9] text-xs sm:text-sm font-bold transition-colors whitespace-nowrap shrink-0"
           >
-            {composerOpen ? "직접 작성창 접기 ▲" : "+ 직접 작성 및 개별 확인 ▼"}
+            {composerOpen ? "점검 및 작성창 접기 ▲" : "+ 빈 양식에 직접 작성 ▼"}
           </button>
           <Link
             href="/news/bulletin"
             target="_blank"
-            className="px-3.5 py-1.5 rounded-full bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0"
+            className="px-4 py-2 rounded-full bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white text-xs sm:text-sm font-bold transition-colors whitespace-nowrap shrink-0"
           >
-            주보 화면 보기 ↗
+            실제 주보 화면 보기 ↗
           </Link>
         </div>
       </div>
 
-      {/* Primary Action: 1-Click Bulk / Multi-File HWP Upload */}
-      <div className="rounded-2xl bg-[#F8FAF8] border border-[#2E7D32]/30 p-4 sm:p-5 space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* Primary Action: Step-by-Step Weekly HWP Upload with Pre-Publish Proofreading */}
+      <div className="rounded-2xl bg-[#F8FAF8] border-2 border-[#2E7D32]/35 p-4 sm:p-6 space-y-4">
+        <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-extrabold text-[#1a2744]">
+          <span className="px-3 py-1 rounded-full bg-[#2E7D32] text-white">
+            1단계: 한글 파일 선택
+          </span>
+          <span className="text-gray-400">→</span>
+          <span className="px-3 py-1 rounded-full bg-white border border-gray-300">
+            2단계: 오탈자 및 미리보기 확인
+          </span>
+          <span className="text-gray-400">→</span>
+          <span className="px-3 py-1 rounded-full bg-white border border-gray-300">
+            3단계: 홈페이지에 게시
+          </span>
+        </div>
+
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1">
-            <h3 className="text-sm sm:text-base font-black text-[#1a2744]">
-              한글 주보 파일 바로 등록 (여러 파일 동시 선택 가능)
+            <h3 className="text-base sm:text-lg font-black text-[#1a2744]">
+              이번 주 한글 주보 불러오기 (.hwp, .hwpx)
             </h3>
-            <p className="text-xs text-gray-500">
-              한글 파일(.hwp, .hwpx)을 한 개 또는 여러 개 한꺼번에 선택하면 날짜순으로 자동 등록됩니다.
+            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
+              주보 파일 1개를 고르면 게시 전에 설교 제목, 예배 순서, 소식, 축하 명단의 오탈자를 먼저 점검할 수 있습니다. (2개 이상 동시 선택 시 일괄 등록)
             </p>
           </div>
 
           <label
-            className={`px-5 py-3 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs sm:text-sm font-black text-center cursor-pointer whitespace-nowrap shrink-0 transition-colors ${
+            className={`px-6 py-3.5 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-sm sm:text-base font-black text-center cursor-pointer whitespace-nowrap shrink-0 shadow-sm transition-colors ${
               parsingHwp || saving ? "opacity-60 pointer-events-none" : ""
             }`}
           >
-            {bulkProgress
-              ? "일괄 등록 중..."
-              : "+ 주보 파일 선택 (1개 또는 여러 개)"}
+            {parsingHwp
+              ? "주보 내용 분석 중..."
+              : bulkProgress
+                ? "일괄 등록 중..."
+                : "📄 주보 한글 파일 선택하기"}
             <input
               type="file"
               multiple
+              accept=".hwp,.hwpx,.docx,.txt"
               className="hidden"
               onChange={async (e) => {
                 const files = e.target.files;
@@ -548,194 +829,417 @@ export function AdminBulletinStudio({
           </label>
         </div>
 
-        <label className="inline-flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+        <label className="inline-flex items-center gap-2 text-xs sm:text-sm text-gray-700 font-semibold cursor-pointer">
           <input
             type="checkbox"
             checked={alsoAttachOriginalFile}
             onChange={(e) => setAlsoAttachOriginalFile(e.target.checked)}
-            className="rounded border-gray-300 text-[#2E7D32]"
+            className="w-4 h-4 rounded border-gray-300 text-[#2E7D32]"
           />
-          <span>원본 한글 파일 다운로드 버튼도 함께 첨부</span>
+          <span>성도님들이 원본 한글 파일도 내려받을 수 있게 함께 첨부하기</span>
         </label>
 
         {bulkProgress && (
-          <div className="rounded-xl bg-blue-50 border border-blue-200 px-4 py-2.5 text-xs sm:text-sm font-bold text-blue-900">
+          <div className="rounded-xl bg-blue-50 border border-blue-200 px-4 py-3 text-xs sm:text-sm font-bold text-blue-900">
             {bulkProgress}
           </div>
         )}
       </div>
 
-      {/* Optional Single-Item Preview / Manual Composer */}
+      {/* Step 2 & 3: Pre-Publish Typo Check, Editable Fields, and Highlighted Live Preview */}
       {composerOpen && (
-        <div className="rounded-2xl bg-[#F8FAF8] border border-gray-200 p-4 sm:p-5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-xl p-3.5 border border-gray-200">
-            <div className="space-y-0.5">
-              <p className="text-xs sm:text-sm font-bold text-[#1a2744]">
-                개별 파일 내용 미리 확인 후 등록
-              </p>
+        <div className="rounded-2xl bg-[#F8FAF8] border-2 border-[#1a2744]/20 p-4 sm:p-6 space-y-5 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-xl p-4 border border-gray-200">
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-[#1a2744] text-white text-xs font-extrabold">
+                  게시 전 점검 중
+                </span>
+                <p className="text-sm sm:text-base font-black text-[#1a2744]">
+                  오탈자와 날짜를 확인한 뒤 맨 아래 [확인 완료 — 주보 게시하기]를 눌러 주세요
+                </p>
+              </div>
               {parsedSourceName && (
-                <p className="text-xs font-bold text-[#2E7D32]">
-                  불러온 파일: {parsedSourceName}
+                <p className="text-xs sm:text-sm font-bold text-[#2E7D32]">
+                  불러온 파일: {parsedSourceName} (아직 홈페이지에 게시되지 않았습니다)
                 </p>
               )}
             </div>
 
-            <label
-              className={`shrink-0 px-4 py-2 rounded-xl bg-[#1a2744] hover:bg-[#2E7D32] text-white text-xs font-bold cursor-pointer transition-colors text-center ${
-                parsingHwp ? "opacity-60 pointer-events-none" : ""
-              }`}
-            >
-              {parsingHwp ? "분석 중..." : "한글 파일 1개 불러오기"}
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <label
+                className={`px-4 py-2 rounded-xl bg-[#1a2744] hover:bg-[#2E7D32] text-white text-xs sm:text-sm font-bold cursor-pointer transition-colors text-center ${
+                  parsingHwp ? "opacity-60 pointer-events-none" : ""
+                }`}
+              >
+                {parsingHwp ? "분석 중..." : "다른 한글 파일 다시 선택"}
+                <input
+                  type="file"
+                  accept=".hwp,.hwpx,.docx,.txt"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    await handleSelectHangulForComposer(file);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowLivePreview((prev) => !prev)}
+                className={`px-4 py-2 rounded-xl border text-xs sm:text-sm font-bold transition-colors ${
+                  showLivePreview
+                    ? "bg-[#E8F5E9] border-[#2E7D32] text-[#1B5E20]"
+                    : "bg-white border-gray-300 text-gray-700"
+                }`}
+              >
+                {showLivePreview ? "큰글씨 미리보기 숨기기" : "큰글씨 미리보기 켜기"}
+              </button>
+            </div>
+          </div>
+
+          {/* Automated Korean & Church Bulletin Proofread Report */}
+          <BulletinProofreadPanel
+            issues={composerIssues}
+            onApplySingleFix={(issue) =>
+              applyFixedInputToComposer(
+                applyBulletinIssueFix(composerCheckInput, issue)
+              )
+            }
+            onApplyAllFixes={() =>
+              applyFixedInputToComposer(
+                applyAllBulletinFixes(composerCheckInput, composerIssues)
+              )
+            }
+          />
+
+          {/* Editable Metadata Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+            <div className="lg:col-span-2">
+              <label className="block text-xs font-extrabold text-gray-600 mb-1">
+                주보 제목
+              </label>
               <input
-                type="file"
-                className="hidden"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  await handleSelectHangulForComposer(file);
-                  e.target.value = "";
-                }}
+                type="text"
+                lang="ko"
+                spellCheck={true}
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="주보 제목"
+                className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm sm:text-base font-bold"
               />
-            </label>
+            </div>
+            <div>
+              <label className="block text-xs font-extrabold text-gray-600 mb-1">
+                주일 예배일
+              </label>
+              <input
+                type="date"
+                aria-label="주보 예배일"
+                value={newDate}
+                onChange={(e) => {
+                  const nextDate = e.target.value;
+                  setNewDate(nextDate);
+                  if (isAutoBulletinDateTitle(newTitle)) {
+                    setNewTitle(formatBulletinDateTitle(nextDate));
+                  }
+                  if (isAutoBulletinVolume(newVolume)) {
+                    setNewVolume(formatDefaultBulletinVolume(nextDate));
+                  }
+                  if (isAutoBulletinScheduleTitle(newScheduleTitle)) {
+                    setNewScheduleTitle(
+                      formatDefaultBulletinScheduleTitle(nextDate)
+                    );
+                  }
+                }}
+                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm sm:text-base"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-extrabold text-gray-600 mb-1">
+                권호수
+              </label>
+              <input
+                type="text"
+                value={newVolume}
+                onChange={(e) => setNewVolume(e.target.value)}
+                placeholder="예: 제 55-47호"
+                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm sm:text-base"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-extrabold text-gray-600 mb-1">
+                설교 제목
+              </label>
+              <input
+                type="text"
+                lang="ko"
+                spellCheck={true}
+                value={newSermonTitle}
+                onChange={(e) => setNewSermonTitle(e.target.value)}
+                placeholder="이번 주 설교 제목"
+                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm sm:text-base font-bold"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-extrabold text-gray-600 mb-1">
+                성경 본문
+              </label>
+              <input
+                type="text"
+                lang="ko"
+                spellCheck={true}
+                value={newScripture}
+                onChange={(e) => setNewScripture(e.target.value)}
+                placeholder="예: 요한복음 3:16"
+                className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm sm:text-base"
+              />
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5">
-            <input
-              type="text"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="주보 제목"
-              className="lg:col-span-2 rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm font-bold"
-            />
-            <input
-              type="date"
-              aria-label="주보 예배일"
-              value={newDate}
-              onChange={(e) => {
-                const nextDate = e.target.value;
-                setNewDate(nextDate);
-                if (isAutoBulletinDateTitle(newTitle)) {
-                  setNewTitle(formatBulletinDateTitle(nextDate));
-                }
-                if (isAutoBulletinVolume(newVolume)) {
-                  setNewVolume(formatDefaultBulletinVolume(nextDate));
-                }
-                if (isAutoBulletinScheduleTitle(newScheduleTitle)) {
-                  setNewScheduleTitle(
-                    formatDefaultBulletinScheduleTitle(nextDate)
-                  );
-                }
-              }}
-              className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"
-            />
-            <input
-              type="text"
-              value={newVolume}
-              onChange={(e) => setNewVolume(e.target.value)}
-              placeholder="호수 (예: 2026-46)"
-              className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"
-            />
-            <input
-              type="text"
-              value={newSermonTitle}
-              onChange={(e) => setNewSermonTitle(e.target.value)}
-              placeholder="설교 제목"
-              className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"
-            />
-            <input
-              type="text"
-              value={newScripture}
-              onChange={(e) => setNewScripture(e.target.value)}
-              placeholder="성경 본문"
-              className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
-            <div className="rounded-xl border border-gray-200 bg-white p-3.5 space-y-1.5">
-              <label className="block text-xs font-extrabold text-[#1a2744]">
-                예배 순서
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+            <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-2">
+              <label className="block text-sm font-extrabold text-[#1a2744]">
+                예배 순서 (틀린 글자가 있으면 바로 고치세요)
               </label>
               <textarea
-                rows={12}
+                rows={13}
+                lang="ko"
+                spellCheck={true}
                 value={newWorshipOrderText}
                 onChange={(e) => setNewWorshipOrderText(e.target.value)}
                 placeholder="한 줄에 한 순서씩 입력"
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm leading-relaxed"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm sm:text-base leading-relaxed"
               />
             </div>
 
-            <div className="space-y-2.5">
-              <div className="rounded-xl border border-gray-200 bg-white p-3.5 space-y-1.5">
-                <label className="block text-xs font-extrabold text-[#1a2744]">
+            <div className="space-y-3">
+              <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-2">
+                <label className="block text-sm font-extrabold text-[#1a2744]">
                   교회 소식
                 </label>
                 <textarea
-                  rows={4}
+                  rows={5}
+                  lang="ko"
+                  spellCheck={true}
                   value={newChurchNews}
                   onChange={(e) => setNewChurchNews(e.target.value)}
                   placeholder={"1. 예배 안내: ...\n2. 모임 안내: ..."}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm leading-relaxed"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm sm:text-base leading-relaxed"
                 />
               </div>
 
-              <div className="rounded-xl border border-[#1a2744]/20 bg-white p-3.5 space-y-1.5">
+              <div className="rounded-xl border border-[#1a2744]/20 bg-white p-4 space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <label className="text-xs font-extrabold text-[#1a2744]">
+                  <label className="text-sm font-extrabold text-[#1a2744]">
                     교회 일정
                   </label>
                   <input
                     type="text"
+                    lang="ko"
+                    spellCheck={true}
                     aria-label="새 주보 교회 일정 제목"
                     value={newScheduleTitle}
                     onChange={(e) => setNewScheduleTitle(e.target.value)}
                     placeholder="예: 11월 교회 일정"
-                    className="w-40 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-bold text-[#1a2744] focus:bg-white focus:border-[#2E7D32] focus:outline-none"
+                    className="w-44 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs sm:text-sm font-bold text-[#1a2744] focus:bg-white focus:border-[#2E7D32] focus:outline-none"
                   />
                 </div>
                 <textarea
                   rows={3}
+                  lang="ko"
+                  spellCheck={true}
                   value={newChurchSchedule}
                   onChange={(e) => setNewChurchSchedule(e.target.value)}
                   placeholder={"• 11월 1일: 성례주일\n• 11월 15일: 추수감사절"}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm leading-relaxed"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm sm:text-base leading-relaxed"
                 />
               </div>
 
-              <div className="rounded-xl border border-[#2E7D32]/30 bg-white p-3.5 space-y-1.5">
-                <label className="block text-xs font-extrabold text-[#2E7D32]">
-                  축하합니다
+              <div className="rounded-xl border border-[#2E7D32]/30 bg-white p-4 space-y-2">
+                <label className="block text-sm font-extrabold text-[#2E7D32]">
+                  축하합니다 (성도 성함 오타 확인)
                 </label>
                 <textarea
                   rows={2}
+                  lang="ko"
+                  spellCheck={true}
                   value={newCelebrationsText}
                   onChange={(e) => setNewCelebrationsText(e.target.value)}
                   placeholder={"생일: 홍길동 (11월 7일)\n결혼: 김일광, 박은혜 (11월 10일)"}
-                  className="w-full rounded-lg border border-[#2E7D32]/40 bg-white px-3 py-1.5 text-sm leading-relaxed"
+                  className="w-full rounded-lg border border-[#2E7D32]/40 bg-white px-3.5 py-2 text-sm sm:text-base leading-relaxed"
                 />
               </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          {/* Large-Print Highlighted Congregation Preview */}
+          {showLivePreview && (
+            <div className="rounded-2xl bg-white border-2 border-[#2E7D32]/30 p-5 sm:p-6 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
+                <div>
+                  <span className="text-xs font-extrabold text-[#2E7D32]">
+                    실제 성도 화면 큰글씨 미리보기
+                  </span>
+                  <h4 className="text-lg sm:text-xl font-black text-[#1a2744] mt-0.5">
+                    {newTitle || formatBulletinDateTitle(newDate)}{" "}
+                    <span className="text-sm font-bold text-gray-500">
+                      ({newVolume || formatDefaultBulletinVolume(newDate)})
+                    </span>
+                  </h4>
+                </div>
+                <span className="text-xs sm:text-sm font-semibold text-gray-500">
+                  노란 형광펜 표시는 점검 제안 단어입니다
+                </span>
+              </div>
+
+              <div className="rounded-xl bg-[#F8FAF8] border border-[#2E7D32]/20 p-4 space-y-1">
+                <p className="text-xs font-extrabold text-[#2E7D32]">
+                  주일 강단 말씀
+                </p>
+                <p className="text-lg sm:text-xl font-black text-[#1a2744] break-keep">
+                  &ldquo;
+                  <HighlightedText
+                    text={newSermonTitle || "(설교 제목 미입력)"}
+                    terms={composerHighlightTerms}
+                  />
+                  &rdquo;
+                </p>
+                <p className="text-sm sm:text-base text-gray-700 font-semibold">
+                  성경 본문:{" "}
+                  <HighlightedText
+                    text={newScripture || "(성경 본문 미입력)"}
+                    terms={composerHighlightTerms}
+                  />{" "}
+                  / 설교:{" "}
+                  <HighlightedText
+                    text={newPreacher || "(설교자 미입력)"}
+                    terms={composerHighlightTerms}
+                  />
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-sm sm:text-base leading-relaxed">
+                <div className="rounded-xl border border-gray-200 p-4 space-y-2">
+                  <p className="font-black text-[#1a2744] border-b border-gray-100 pb-1.5">
+                    예배 순서
+                  </p>
+                  {previewWorshipLines.length === 0 ? (
+                    <p className="text-gray-400 text-sm">입력된 예배 순서 없음</p>
+                  ) : (
+                    <ol className="space-y-1.5 text-gray-800">
+                      {previewWorshipLines.map((line, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="font-bold text-[#2E7D32] shrink-0">
+                            {i + 1}.
+                          </span>
+                          <span className="break-keep">
+                            <HighlightedText
+                              text={line}
+                              terms={composerHighlightTerms}
+                            />
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-gray-200 p-4 space-y-1.5">
+                    <p className="font-black text-[#1a2744] border-b border-gray-100 pb-1.5">
+                      교회 소식
+                    </p>
+                    {previewNewsLines.length === 0 ? (
+                      <p className="text-gray-400 text-sm">입력된 소식 없음</p>
+                    ) : (
+                      previewNewsLines.map((line, i) => (
+                        <p key={i} className="text-gray-800 break-keep">
+                          <HighlightedText
+                            text={line}
+                            terms={composerHighlightTerms}
+                          />
+                        </p>
+                      ))
+                    )}
+                  </div>
+
+                  {previewScheduleLines.length > 0 && (
+                    <div className="rounded-xl border border-gray-200 p-4 space-y-1.5">
+                      <p className="font-black text-[#1a2744] border-b border-gray-100 pb-1.5">
+                        <HighlightedText
+                          text={newScheduleTitle || "교회 일정"}
+                          terms={composerHighlightTerms}
+                        />
+                      </p>
+                      {previewScheduleLines.map((line, i) => (
+                        <p key={i} className="text-gray-800 break-keep">
+                          <HighlightedText
+                            text={line}
+                            terms={composerHighlightTerms}
+                          />
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  {previewCelebrationLines.length > 0 && (
+                    <div className="rounded-xl bg-[#F8FAF8] border border-[#2E7D32]/25 p-4 space-y-1.5">
+                      <p className="font-black text-[#2E7D32] border-b border-[#2E7D32]/15 pb-1.5">
+                        축하합니다
+                      </p>
+                      {previewCelebrationLines.map((line, i) => (
+                        <p key={i} className="text-gray-800 font-semibold break-keep">
+                          <HighlightedText
+                            text={line}
+                            terms={composerHighlightTerms}
+                          />
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-200">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-gray-600">설교자:</span>
+              <span className="text-xs sm:text-sm font-bold text-gray-700">
+                설교자:
+              </span>
               <input
                 type="text"
+                lang="ko"
+                spellCheck={true}
                 value={newPreacher}
                 onChange={(e) => setNewPreacher(e.target.value)}
-                className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold w-44"
+                className="rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-sm sm:text-base font-semibold w-48"
               />
             </div>
 
-            <button
-              type="button"
-              disabled={saving || parsingHwp}
-              onClick={() => void handlePublishNewBulletin()}
-              className="px-5 py-2.5 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-sm font-black transition-colors disabled:opacity-50"
-            >
-              주보 등록하기
-            </button>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setComposerOpen(false);
+                  setPendingSourceFile(null);
+                  setParsedSourceName(null);
+                }}
+                className="px-4 py-3 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-sm font-bold"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                disabled={saving || parsingHwp}
+                onClick={() => void handlePublishNewBulletin()}
+                className="px-6 py-3 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-sm sm:text-base font-black shadow-md transition-colors disabled:opacity-50"
+              >
+                ✓ 확인 완료 — 홈페이지에 주보 게시하기
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -828,6 +1332,24 @@ export function AdminBulletinStudio({
               const isExpanded = expandedId === bul.id;
               const isChecked = selectedIds.includes(bul.id);
               const bulParts = resolveBulletinParts(bul);
+              const rowCheckInput: BulletinCheckInput | null = isExpanded
+                ? {
+                    currentId: bul.id,
+                    date: bul.date,
+                    volume: bul.volume,
+                    sermonTitle: bul.sermonTitle,
+                    scripture: bul.scripture,
+                    preacher: bul.preacher ?? "",
+                    worshipOrderText: (bul.worshipOrder ?? []).join("\n"),
+                    churchNews: bulParts.churchNews,
+                    scheduleTitle: bulParts.scheduleTitle,
+                    churchSchedule: bulParts.churchSchedule,
+                    celebrationsText: (bul.celebrations ?? []).join("\n"),
+                  }
+                : null;
+              const rowIssues = rowCheckInput
+                ? inspectBulletinDraft(rowCheckInput, bulletins)
+                : [];
 
               return (
                 <div
@@ -850,13 +1372,13 @@ export function AdminBulletinStudio({
                         }
                         className="w-4 h-4 rounded border-gray-300 text-[#2E7D32] shrink-0"
                       />
-                      <span className="px-2.5 py-0.5 rounded-full bg-[#E8F5E9] text-[#2E7D32] text-[11px] font-bold shrink-0">
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#E8F5E9] text-[#2E7D32] text-xs font-bold shrink-0">
                         {bul.volume}
                       </span>
-                      <span className="text-xs text-gray-400 font-mono shrink-0">
+                      <span className="text-xs text-gray-500 font-mono shrink-0">
                         {bul.date}
                       </span>
-                      <span className="font-bold text-sm text-[#1a2744] truncate">
+                      <span className="font-bold text-sm sm:text-base text-[#1a2744] truncate">
                         {bul.title}
                       </span>
                     </div>
@@ -877,7 +1399,8 @@ export function AdminBulletinStudio({
                           축하
                         </span>
                       )}
-                      {(bul.fileUrl || (bul.imageUrls && bul.imageUrls.length > 0)) && (
+                      {(bul.fileUrl ||
+                        (bul.imageUrls && bul.imageUrls.length > 0)) && (
                         <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-[11px] font-semibold">
                           첨부
                         </span>
@@ -887,13 +1410,13 @@ export function AdminBulletinStudio({
                         onClick={() =>
                           setExpandedId(isExpanded ? null : bul.id)
                         }
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                           isExpanded
                             ? "bg-[#1a2744] text-white"
                             : "bg-[#F4F7F5] text-[#1a2744] hover:bg-gray-200"
                         }`}
                       >
-                        {isExpanded ? "닫기 ▲" : "수정 ▼"}
+                        {isExpanded ? "닫기 ▲" : "오탈자 점검 및 수정 ▼"}
                       </button>
                       <button
                         type="button"
@@ -923,11 +1446,29 @@ export function AdminBulletinStudio({
                     </div>
                   </div>
 
-                  {isExpanded && (
-                    <div className="mt-3.5 pt-3.5 border-t border-gray-200 space-y-3">
+                  {isExpanded && rowCheckInput && (
+                    <div className="mt-3.5 pt-3.5 border-t border-gray-200 space-y-3.5">
+                      <BulletinProofreadPanel
+                        issues={rowIssues}
+                        onApplySingleFix={(issue) =>
+                          applyEditedInputToRow(
+                            bul,
+                            applyBulletinIssueFix(rowCheckInput, issue)
+                          )
+                        }
+                        onApplyAllFixes={() =>
+                          applyEditedInputToRow(
+                            bul,
+                            applyAllBulletinFixes(rowCheckInput, rowIssues)
+                          )
+                        }
+                      />
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2">
                         <input
                           type="text"
+                          lang="ko"
+                          spellCheck={true}
                           value={bul.title}
                           placeholder="주보 제목"
                           onChange={(e) =>
@@ -986,6 +1527,8 @@ export function AdminBulletinStudio({
                         />
                         <input
                           type="text"
+                          lang="ko"
+                          spellCheck={true}
                           value={bul.sermonTitle}
                           placeholder="설교 제목"
                           onChange={(e) =>
@@ -1001,6 +1544,8 @@ export function AdminBulletinStudio({
                         />
                         <input
                           type="text"
+                          lang="ko"
+                          spellCheck={true}
                           value={bul.scripture}
                           placeholder="성경 본문"
                           onChange={(e) =>
@@ -1022,6 +1567,8 @@ export function AdminBulletinStudio({
                         </span>
                         <input
                           type="text"
+                          lang="ko"
+                          spellCheck={true}
                           value={bul.preacher ?? ""}
                           placeholder="예: 신점일 담임목사"
                           onChange={(e) =>
@@ -1044,6 +1591,8 @@ export function AdminBulletinStudio({
                           </label>
                           <textarea
                             rows={12}
+                            lang="ko"
+                            spellCheck={true}
                             value={(bul.worshipOrder ?? []).join("\n")}
                             onChange={(e) =>
                               onUpdateBulletins(
@@ -1071,6 +1620,8 @@ export function AdminBulletinStudio({
                             </label>
                             <textarea
                               rows={4}
+                              lang="ko"
+                              spellCheck={true}
                               value={bulParts.churchNews}
                               placeholder={"1. 예배 안내: ...\n2. 모임 안내: ..."}
                               onChange={(e) => {
@@ -1106,6 +1657,8 @@ export function AdminBulletinStudio({
                               </label>
                               <input
                                 type="text"
+                                lang="ko"
+                                spellCheck={true}
                                 aria-label="교회 일정 제목"
                                 value={bulParts.scheduleTitle}
                                 placeholder="예: 7월 교회 일정"
@@ -1136,6 +1689,8 @@ export function AdminBulletinStudio({
                             </div>
                             <textarea
                               rows={3}
+                              lang="ko"
+                              spellCheck={true}
                               value={bulParts.churchSchedule}
                               placeholder={"• 7월 3-4일: 청년부 수련회\n• 7월 12일: 제직회"}
                               onChange={(e) => {
@@ -1170,6 +1725,8 @@ export function AdminBulletinStudio({
                             </label>
                             <textarea
                               rows={2}
+                              lang="ko"
+                              spellCheck={true}
                               value={(bul.celebrations ?? []).join("\n")}
                               placeholder={"생일: 홍길동 (7월 6일)\n결혼: 김일광, 박은혜 (7월 10일)"}
                               onChange={(e) => {
@@ -1199,6 +1756,7 @@ export function AdminBulletinStudio({
                           한글 파일에서 다시 불러오기
                           <input
                             type="file"
+                            accept=".hwp,.hwpx,.docx,.txt"
                             className="hidden"
                             onChange={async (e) => {
                               const file = e.target.files?.[0];
@@ -1275,7 +1833,7 @@ export function AdminBulletinStudio({
                               `"${bul.title}" 주보 수정사항이 저장되었습니다.`
                             );
                           }}
-                          className="ml-auto px-4 py-2 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs font-black transition-colors disabled:opacity-60"
+                          className="ml-auto px-4 py-2 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs sm:text-sm font-black transition-colors disabled:opacity-60"
                         >
                           수정 내용 저장
                         </button>

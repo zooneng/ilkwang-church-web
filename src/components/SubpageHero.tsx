@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { SubTabItem } from "@/components/NavigationConfig";
 import {
   resolveDynamicSubTabs,
+  useDefaultSubpageBanner,
   useNavigation,
 } from "@/components/NavigationContext";
 
@@ -25,13 +26,18 @@ export function SubpageHero({
 }: SubpageHeroProps) {
   const pathname = usePathname();
   const navigation = useNavigation();
+  const defaultSubpageBannerUrl = useDefaultSubpageBanner();
   const effectiveTabs = resolveDynamicSubTabs(navigation, pathname, tabs);
+  const effectiveBannerUrl =
+    defaultSubpageBannerUrl && bannerImageUrl.includes("images.unsplash.com")
+      ? defaultSubpageBannerUrl
+      : bannerImageUrl;
 
   return (
     <>
       <div className="relative flex items-end overflow-hidden min-h-[300px] sm:min-h-[400px] lg:min-h-[460px] pt-28">
         <img
-          src={bannerImageUrl}
+          src={effectiveBannerUrl}
           alt={title}
           className="absolute inset-0 w-full h-full object-cover"
         />
