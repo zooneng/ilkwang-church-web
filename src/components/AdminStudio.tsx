@@ -1982,11 +1982,11 @@ export function AdminStudio({
   const adminGroups: readonly AdminGroupDef[] = [
     {
       key: "weekly",
-      title: "주간 사역 및 소통",
+      title: "자주 쓰는 메뉴",
       items: [
         {
           key: "bulletin",
-          label: "주보 안내",
+          label: "주보 올리기",
           countLabel: `${draft.bulletins.length}호`,
         },
         {
@@ -1996,101 +1996,93 @@ export function AdminStudio({
         },
         {
           key: "inquiries",
-          label: "새가족 및 문의함",
+          label: "새가족 및 문의",
           countLabel: `${inquiries.length}건`,
           alertBadge:
             pendingInquiriesCount > 0 ? pendingInquiriesCount : undefined,
+        },
+        {
+          key: "gallery",
+          label: "사진 앨범",
+          countLabel: `${visibleLegacyAlbumsCount}개`,
         },
       ],
     },
     {
       key: "boards",
-      title: "나눔과 소식 게시판",
+      title: "소식 및 게시판",
       items: [
         {
           key: "notices",
-          label: "교회 소식",
+          label: "공지사항",
           countLabel: `${draft.notices.length}건`,
         },
         {
           key: "events",
-          label: "행사 안내",
+          label: "행사 일정",
           countLabel: `${draft.events.length}건`,
-        },
-        {
-          key: "gallery",
-          label: "앨범",
-          countLabel: `${visibleLegacyAlbumsCount}개`,
         },
         {
           key: "resources",
           label: "교재 자료",
           countLabel: `${draft.resources.length}건`,
         },
-      ],
-    },
-    {
-      key: "ministry",
-      title: "예배와 다음 세대",
-      items: [
-        {
-          key: "worship",
-          label: "예배 안내",
-          countLabel: `${draft.worshipSchedule.length}개`,
-        },
-        {
-          key: "youth",
-          label: "다음 세대 안내",
-          countLabel: `${draft.youthDepartments.length}부서`,
-        },
         {
           key: "community",
-          label: "다음 세대 부서 소식",
+          label: "부서 소식",
           countLabel: `${draft.communityPosts.length}건`,
         },
       ],
     },
     {
       key: "about",
-      title: "교회 소개 및 헌금",
+      title: "화면 및 교회 정보",
       items: [
-        { key: "greeting", label: "인사말" },
-        { key: "pastor-bio", label: "담임목사 약력" },
         {
-          key: "history",
-          label: "교회 역사",
-          countLabel: `${draft.history.length}건`,
+          key: "hero-cube",
+          label: "배경 및 대표 사진",
         },
+        {
+          key: "top-banner",
+          label: "상단 한 줄 알림",
+          countLabel: `${draft.topBannerNotices.length}줄`,
+        },
+        { key: "greeting", label: "담임목사 인사말" },
+        { key: "pastor-bio", label: "담임목사 약력" },
         {
           key: "staff",
           label: "섬기는 사람들",
           countLabel: `${draft.staff.length}명`,
         },
-        { key: "church-info", label: "오시는 길" },
+        {
+          key: "history",
+          label: "교회 연혁",
+          countLabel: `${draft.history.length}건`,
+        },
+        {
+          key: "worship",
+          label: "예배 시간",
+          countLabel: `${draft.worshipSchedule.length}개`,
+        },
+        {
+          key: "youth",
+          label: "다음 세대 안내",
+        },
+        { key: "church-info", label: "오시는 길 및 연락처" },
         {
           key: "offering",
-          label: "온라인 헌금",
+          label: "헌금 계좌",
           countLabel: `${draft.offeringAccounts.length}개`,
         },
       ],
     },
     {
       key: "system",
-      title: "화면 배경 및 시스템 설정",
+      title: "기타 설정",
       items: [
-        {
-          key: "hero-cube",
-          label: "대표 및 배경 사진",
-          countLabel: `${heroCubeCount}/6면`,
-        },
-        {
-          key: "top-banner",
-          label: "최상단 한 줄 알림바",
-          countLabel: `${draft.topBannerNotices.length}줄`,
-        },
-        { key: "menus", label: "상단 메뉴 및 게시판 추가" },
-        { key: "posts", label: "게시물 통합 이동 및 삭제" },
-        { key: "backup", label: "데이터 백업 및 복원" },
+        { key: "menus", label: "메뉴 및 게시판 구성" },
+        { key: "posts", label: "게시물 통합 정리" },
+        { key: "backup", label: "데이터 백업" },
       ],
     },
   ];
@@ -2133,61 +2125,59 @@ export function AdminStudio({
     <div className="min-h-screen bg-[#F4F7F5] pb-24">
       {/* Admin Top Header Banner */}
       <div className="bg-[#1a2744] text-white border-t border-white/10">
-        <div className="max-w-[1400px] mx-auto px-5 sm:px-6 py-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <span className="inline-block px-3 py-0.5 rounded-full bg-[#2E7D32] text-xs font-bold mb-1.5">
-              사이트 관리자 모드
-            </span>
-            <h1 className="text-xl sm:text-2xl lg:text-[26px] font-black">
-              {draft.churchInfo.name} 홈페이지 관리
+        <div className="max-w-[1400px] mx-auto px-5 sm:px-6 py-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <button
+            type="button"
+            onClick={() => selectAdminTab("home")}
+            className="text-left"
+          >
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight">
+              {draft.churchInfo.name} 관리자
             </h1>
-            <p className="text-xs sm:text-sm text-white/80 mt-1">
-              원하시는 작업 카드를 누르고 수정한 뒤 초록색 [저장] 버튼을 누르면 홈페이지에 반영됩니다.
-            </p>
-          </div>
+          </button>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
             {activeTab !== "home" && (
               <button
                 type="button"
                 onClick={() => selectAdminTab("home")}
-                className="px-4 py-2.5 rounded-full bg-white text-[#1a2744] hover:bg-[#E8F5E9] hover:text-[#1B5E20] text-xs sm:text-sm font-black shadow-sm transition-colors"
+                className="px-4 py-2 rounded-full bg-white text-[#1a2744] hover:bg-[#E8F5E9] hover:text-[#1B5E20] text-xs sm:text-sm font-black shadow-sm transition-colors"
               >
-                🏠 전체 메뉴 한눈에 보기
+                전체 메뉴
               </button>
             )}
             <button
               type="button"
               onClick={toggleLargePrint}
               aria-pressed={largePrint}
-              className={`px-4 py-2.5 rounded-full border text-xs sm:text-sm font-extrabold transition-colors ${
+              className={`px-4 py-2 rounded-full border text-xs sm:text-sm font-extrabold transition-colors ${
                 largePrint
                   ? "bg-amber-400 border-amber-300 text-[#1a2744]"
                   : "bg-white/10 hover:bg-white/20 border-white/30 text-white"
               }`}
             >
-              {largePrint ? "🔍 큰 글씨 보기 켜짐 ✓" : "🔍 큰 글씨로 보기"}
+              {largePrint ? "큰 글씨 켜짐" : "큰 글씨"}
             </button>
             <a
               href="/church-admin-easy-manual.pdf"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-4 py-2.5 rounded-full bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs sm:text-sm font-black shadow-xs transition-colors"
+              className="px-4 py-2 rounded-full bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs sm:text-sm font-black shadow-xs transition-colors"
             >
-              📖 그림 설명서 (PDF)
+              설명서 PDF
             </a>
             <button
               type="button"
               onClick={() => setAssistantDrawerOpen(true)}
-              className="px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/25 text-white border border-white/25 text-xs sm:text-sm font-bold transition-colors"
+              className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/25 text-white border border-white/25 text-xs sm:text-sm font-bold transition-colors"
             >
-              💬 사용법 물어보기
+              도움말
             </button>
             <Link
               href="/"
-              className="px-4 py-2.5 rounded-full border border-white/40 text-white hover:bg-white hover:text-[#1a2744] text-xs sm:text-sm font-bold transition-colors"
+              className="px-4 py-2 rounded-full border border-white/40 text-white hover:bg-white hover:text-[#1a2744] text-xs sm:text-sm font-bold transition-colors"
             >
-              홈페이지 보기 ↗
+              홈페이지 보기
             </Link>
             {authRequired && (
               <button
@@ -2197,7 +2187,7 @@ export function AdminStudio({
                   router.push("/");
                   router.refresh();
                 }}
-                className="px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/25 text-white border border-white/25 text-xs sm:text-sm font-bold transition-colors"
+                className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/25 text-white border border-white/25 text-xs sm:text-sm font-bold transition-colors"
               >
                 로그아웃
               </button>
@@ -2207,7 +2197,7 @@ export function AdminStudio({
                 type="button"
                 disabled={saving}
                 onClick={() => void handleSave()}
-                className={`px-6 py-2.5 rounded-full text-white text-sm font-black shadow-lg transition-colors ${
+                className={`px-5 py-2 rounded-full text-white text-xs sm:text-sm font-black shadow-lg transition-colors ${
                   isDirty
                     ? "bg-amber-500 hover:bg-amber-600"
                     : "bg-[#2E7D32] hover:bg-[#1B5E20]"
@@ -2216,91 +2206,15 @@ export function AdminStudio({
                 {saving
                   ? "저장 중..."
                   : isDirty
-                    ? "● 수정 내용 저장하기"
-                    : "✓ 변경사항 저장하기"}
+                    ? "수정 내용 저장"
+                    : "저장하기"}
               </button>
             )}
           </div>
         </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-5 sm:px-6 pt-5">
-        {/* Single-Purpose Quick Shortcut Cards (Shown inside sub-tabs) */}
-        {activeTab !== "home" && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-            <button
-              type="button"
-              onClick={() => selectAdminTab("bulletin")}
-              className={`rounded-2xl border p-3.5 sm:p-4 text-left transition-colors ${
-                activeTab === "bulletin"
-                  ? "bg-[#F8FAF8] border-[#2E7D32]"
-                  : "bg-white border-gray-200 hover:border-[#2E7D32]"
-              }`}
-            >
-              <p className="text-xs sm:text-sm font-bold text-gray-600">
-                1. 주보 안내
-              </p>
-              <p className="text-base sm:text-xl font-black text-[#1a2744] mt-1">
-                총 {draft.bulletins.length}호
-              </p>
-            </button>
-            <button
-              type="button"
-              onClick={() => selectAdminTab("sermons")}
-              className={`rounded-2xl border p-3.5 sm:p-4 text-left transition-colors ${
-                activeTab === "sermons"
-                  ? "bg-[#F8FAF8] border-[#2E7D32]"
-                  : "bg-white border-gray-200 hover:border-[#2E7D32]"
-              }`}
-            >
-              <p className="text-xs sm:text-sm font-bold text-gray-600">
-                2. 설교 영상
-              </p>
-              <p className="text-base sm:text-xl font-black text-[#1a2744] mt-1">
-                총 {draft.sermons.length}편
-              </p>
-            </button>
-            <button
-              type="button"
-              onClick={() => selectAdminTab("inquiries")}
-              className={`rounded-2xl border p-3.5 sm:p-4 text-left transition-colors ${
-                activeTab === "inquiries"
-                  ? "bg-[#F8FAF8] border-[#2E7D32]"
-                  : "bg-white border-gray-200 hover:border-[#2E7D32]"
-              }`}
-            >
-              <p className="text-xs sm:text-sm font-bold text-gray-600">
-                3. 새가족 및 문의함
-              </p>
-              <p className="text-base sm:text-xl font-black text-[#1a2744] mt-1">
-                미처리 {pendingInquiriesCount}건{" "}
-                <span className="text-xs font-medium text-gray-500 block sm:inline">
-                  전체 {inquiries.length}건
-                </span>
-              </p>
-            </button>
-            <button
-              type="button"
-              onClick={() => selectAdminTab("gallery")}
-              className={`rounded-2xl border p-3.5 sm:p-4 text-left transition-colors ${
-                activeTab === "gallery"
-                  ? "bg-[#F8FAF8] border-[#2E7D32]"
-                  : "bg-white border-gray-200 hover:border-[#2E7D32]"
-              }`}
-            >
-              <p className="text-xs sm:text-sm font-bold text-gray-600">
-                4. 사진 앨범
-              </p>
-              <p className="text-base sm:text-xl font-black text-[#1a2744] mt-1">
-                공개 앨범 {visibleLegacyAlbumsCount}개{" "}
-                <span className="text-xs font-medium text-gray-500 block sm:inline">
-                  전체 {legacyAlbums.length}개
-                </span>
-              </p>
-            </button>
-          </div>
-        )}
-
+      <div className="max-w-[1400px] mx-auto px-5 sm:px-6 pt-6">
         {/* Status / Upload / Error Alerts */}
         {uploadingLabel && (
           <div className="mb-4 rounded-xl bg-blue-50 border border-blue-300 px-5 py-3 text-sm font-bold text-blue-900">
@@ -2353,7 +2267,7 @@ export function AdminStudio({
               onClick={() => selectAdminTab("home")}
               className="w-full py-2.5 px-3.5 rounded-xl bg-[#E8F5E9] text-[#1B5E20] text-sm font-black text-center"
             >
-              🏠 전체 메뉴 한눈에 보기 첫 화면으로
+              ← 전체 메뉴로 돌아가기
             </button>
             <div className="flex flex-nowrap gap-1.5 overflow-x-auto no-scrollbar pb-1">
               {adminGroups.map((group) => {
@@ -2414,15 +2328,14 @@ export function AdminStudio({
           {activeTab !== "home" && (
             <aside
               aria-label="관리자 상세 메뉴"
-              className="hidden lg:block w-[272px] shrink-0 sticky top-24 bg-white rounded-2xl border border-gray-200 p-4 space-y-4 shadow-xs"
+              className="hidden lg:block w-[248px] shrink-0 sticky top-24 bg-white rounded-2xl border border-gray-200 p-4 space-y-4 shadow-xs"
             >
               <button
                 type="button"
                 onClick={() => selectAdminTab("home")}
-                className="w-full px-3.5 py-3 rounded-xl bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#1B5E20] hover:text-white text-sm font-black text-left flex items-center justify-between transition-colors"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#1B5E20] hover:text-white text-sm font-black text-left transition-colors"
               >
-                <span>🏠 전체 메뉴 첫 화면</span>
-                <span className="text-xs">열기 →</span>
+                ← 전체 메뉴
               </button>
 
               {adminGroups.map((group) => (
@@ -2474,432 +2387,241 @@ export function AdminStudio({
             className="min-w-0 flex-1"
             style={largePrint ? { zoom: 1.08 } : undefined}
           >
-            {/* Current Category Breadcrumb + Plain-Korean Guide Bar */}
+            {/* Compact Sub-Tab Header Bar */}
             {activeTab !== "home" && (
-              <div className="mb-5 bg-white rounded-2xl border border-gray-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                    <button
-                      type="button"
-                      onClick={() => selectAdminTab("home")}
-                      className="font-extrabold text-[#2E7D32] hover:underline"
-                    >
-                      ← 전체 메뉴 첫 화면
-                    </button>
-                    <span className="text-gray-300">|</span>
-                    <span className="font-bold text-gray-600">
-                      {activeGroup.title}
-                    </span>
-                    <span className="text-gray-300">&gt;</span>
-                    <span className="font-black text-[#1a2744] text-sm sm:text-base">
-                      {activeCategory.label}
-                    </span>
-                  </div>
-                  <p className="text-xs sm:text-sm text-gray-600 font-medium">
-                    {activeGuide.summary}
-                  </p>
+              <div className="mb-5 bg-white rounded-2xl border border-gray-200 px-4 sm:px-6 py-3.5 flex items-center justify-between gap-3 shadow-2xs">
+                <div className="flex flex-wrap items-center gap-2.5 text-sm">
+                  <button
+                    type="button"
+                    onClick={() => selectAdminTab("home")}
+                    className="font-extrabold text-[#2E7D32] hover:underline"
+                  >
+                    ← 전체 메뉴
+                  </button>
+                  <span className="text-gray-300">|</span>
+                  <span className="font-black text-[#1a2744] text-base sm:text-lg">
+                    {activeCategory.label}
+                  </span>
                 </div>
 
                 {activeGuide.publicHref && (
                   <Link
                     href={activeGuide.publicHref}
                     target="_blank"
-                    className="self-start sm:self-center px-4 py-2 rounded-full bg-[#F8FAF8] border border-gray-300 hover:border-[#2E7D32] text-xs sm:text-sm font-bold text-[#1a2744] whitespace-nowrap shrink-0 transition-colors"
+                    className="px-4 py-1.5 rounded-full bg-[#F8FAF8] border border-gray-300 hover:border-[#2E7D32] text-xs sm:text-sm font-bold text-[#1a2744] whitespace-nowrap shrink-0 transition-colors"
                   >
-                    성도 화면에서 보기 ↗
+                    실제 화면 보기
                   </Link>
                 )}
               </div>
             )}
 
             {/* =========================================================
-                SENIOR-FRIENDLY AT-A-GLANCE START SCREEN (DEFAULT /admin)
+                CLEAN, UNCLUTTERED START SCREEN (DEFAULT /admin)
                ========================================================= */}
             {activeTab === "home" && (
-              <div className="space-y-7">
-                {/* Friendly 3-Point Reassurance Guide */}
-                <div className="bg-white rounded-2xl border-2 border-[#2E7D32]/35 p-5 sm:p-7 shadow-xs space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h2 className="text-xl sm:text-2xl font-black text-[#1a2744]">
-                      어느 작업을 하시겠습니까? 아래 큰 버튼 중 하나만 눌러 주세요
-                    </h2>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <a
-                        href="/church-admin-easy-manual.pdf"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-4 py-2 rounded-xl bg-[#1a2744] hover:bg-[#2E7D32] text-white text-sm font-black transition-colors"
-                      >
-                        📖 종이 인쇄용 그림 설명서 (PDF) 열기 ↗
-                      </a>
-                      <button
-                        type="button"
-                        onClick={toggleLargePrint}
-                        className={`px-4 py-2 rounded-xl text-sm font-black transition-colors ${
-                          largePrint
-                            ? "bg-amber-400 text-[#1a2744]"
-                            : "bg-[#E8F5E9] text-[#1B5E20] hover:bg-[#2E7D32] hover:text-white"
-                        }`}
-                      >
-                        {largePrint
-                          ? "🔍 큰 글씨 보기 적용 중 — 다시 누르면 기본 크기"
-                          : "🔍 글씨가 작으시면 여기를 눌러 크게 보세요"}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1 text-sm sm:text-base text-gray-700">
-                    <div className="rounded-xl bg-[#F8FAF8] border border-gray-200 px-4 py-3 leading-relaxed">
-                      <span className="font-black text-[#2E7D32]">① 매주 주일 업무:</span>{" "}
-                      아래 <strong>1번 주보</strong>, <strong>2번 설교 영상</strong>, <strong>3번 새가족 문의</strong> 세 가지만 확인하시면 충분합니다.
-                    </div>
-                    <div className="rounded-xl bg-[#F8FAF8] border border-gray-200 px-4 py-3 leading-relaxed">
-                      <span className="font-black text-[#2E7D32]">② 주보 오탈자 확인:</span>{" "}
-                      한글 주보 파일을 고르면 바로 올라가지 않고 <strong>오탈자 점검 화면</strong>이 먼저 열립니다.
-                    </div>
-                    <div className="rounded-xl bg-[#F8FAF8] border border-gray-200 px-4 py-3 leading-relaxed">
-                      <span className="font-black text-[#2E7D32]">③ 안심 둘러보기:</span>{" "}
-                      어느 메뉴를 눌러 보셔도 <strong>[저장]</strong> 버튼을 누르기 전에는 실제 홈페이지가 바뀌지 않습니다.
-                    </div>
-                  </div>
-                </div>
+              <div className="max-w-[1120px] mx-auto space-y-8 pt-1">
+                {/* Section 1: Weekly Primary 4 Cards */}
+                <section className="space-y-3">
+                  <h2 className="text-base sm:text-lg font-black text-[#1a2744] px-1">
+                    자주 쓰는 메뉴
+                  </h2>
 
-                {/* Section 1: Weekly Top 4 Tasks (Huge 2x2 Cards) */}
-                <section className="space-y-3.5">
-                  <div className="flex items-center gap-2.5">
-                    <span className="px-3 py-1 rounded-full bg-[#1a2744] text-white text-xs sm:text-sm font-black">
-                      매주 자주 쓰는 업무
-                    </span>
-                    <h3 className="text-lg sm:text-xl font-black text-[#1a2744]">
-                      주일마다 가장 많이 쓰는 4가지 기능
-                    </h3>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <button
                       type="button"
                       onClick={() => selectAdminTab("bulletin")}
-                      className="group bg-white hover:bg-[#F8FAF8] rounded-2xl border-2 border-gray-200 hover:border-[#2E7D32] p-5 sm:p-6 text-left shadow-xs transition-all flex flex-col justify-between gap-4"
+                      className="group bg-white hover:bg-[#F8FAF8] rounded-2xl border-2 border-gray-200 hover:border-[#2E7D32] p-6 sm:p-7 text-left shadow-xs transition-all flex items-center justify-between gap-4"
                     >
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E8F5E9] text-[#1B5E20] text-sm font-black">
-                            1번 · 주보 안내
-                          </span>
-                          <span className="text-sm font-bold text-gray-500">
-                            등록 {draft.bulletins.length}호 (최신:{" "}
-                            {draft.bulletins[0]?.date ?? "없음"})
-                          </span>
-                        </div>
+                      <div className="space-y-1">
                         <p className="text-xl sm:text-2xl font-black text-[#1a2744] group-hover:text-[#2E7D32] transition-colors">
-                          📄 이번 주 주보 올리기 (오탈자 점검)
+                          주보 올리기
                         </p>
-                        <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-                          한글 주보 파일(.hwp, .hwpx)을 선택해 맞춤법과 날짜를 먼저 점검한 뒤 성도님들께 게시합니다.
+                        <p className="text-sm text-gray-500 font-semibold">
+                          한글 파일 등록
                         </p>
                       </div>
-                      <span className="inline-flex items-center justify-between w-full px-4 py-3 rounded-xl bg-[#2E7D32] text-white text-sm sm:text-base font-black">
-                        <span>주보 올리기 및 오탈자 점검 열기</span>
-                        <span>→</span>
+                      <span className="px-3.5 py-1.5 rounded-full bg-[#E8F5E9] text-[#1B5E20] text-sm font-black shrink-0">
+                        {draft.bulletins.length}호
                       </span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => selectAdminTab("sermons")}
-                      className="group bg-white hover:bg-[#F8FAF8] rounded-2xl border-2 border-gray-200 hover:border-[#2E7D32] p-5 sm:p-6 text-left shadow-xs transition-all flex flex-col justify-between gap-4"
+                      className="group bg-white hover:bg-[#F8FAF8] rounded-2xl border-2 border-gray-200 hover:border-[#2E7D32] p-6 sm:p-7 text-left shadow-xs transition-all flex items-center justify-between gap-4"
                     >
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E8F5E9] text-[#1B5E20] text-sm font-black">
-                            2번 · 설교 영상
-                          </span>
-                          <span className="text-sm font-bold text-gray-500">
-                            등록 {draft.sermons.length}편 (최신:{" "}
-                            {draft.sermons[0]?.date ?? "없음"})
-                          </span>
-                        </div>
+                      <div className="space-y-1">
                         <p className="text-xl sm:text-2xl font-black text-[#1a2744] group-hover:text-[#2E7D32] transition-colors">
-                          🎬 설교 유튜브 영상 불러오기
+                          설교 영상
                         </p>
-                        <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-                          유튜브에 올린 새 설교 영상을 버튼 한 번으로 자동 동기화하거나 영상 주소를 등록합니다.
+                        <p className="text-sm text-gray-500 font-semibold">
+                          유튜브 설교 등록
                         </p>
                       </div>
-                      <span className="inline-flex items-center justify-between w-full px-4 py-3 rounded-xl bg-[#1a2744] group-hover:bg-[#2E7D32] text-white text-sm sm:text-base font-black transition-colors">
-                        <span>설교 영상 관리 열기</span>
-                        <span>→</span>
+                      <span className="px-3.5 py-1.5 rounded-full bg-[#E8F5E9] text-[#1B5E20] text-sm font-black shrink-0">
+                        {draft.sermons.length}편
                       </span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => selectAdminTab("inquiries")}
-                      className="group bg-white hover:bg-[#F8FAF8] rounded-2xl border-2 border-gray-200 hover:border-[#2E7D32] p-5 sm:p-6 text-left shadow-xs transition-all flex flex-col justify-between gap-4"
+                      className="group bg-white hover:bg-[#F8FAF8] rounded-2xl border-2 border-gray-200 hover:border-[#2E7D32] p-6 sm:p-7 text-left shadow-xs transition-all flex items-center justify-between gap-4"
                     >
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E8F5E9] text-[#1B5E20] text-sm font-black">
-                            3번 · 새가족 및 문의함
-                          </span>
-                          {pendingInquiriesCount > 0 ? (
-                            <span className="px-3 py-1 rounded-full bg-amber-500 text-white text-xs sm:text-sm font-black">
-                              미확인 {pendingInquiriesCount}건
-                            </span>
-                          ) : (
-                            <span className="text-sm font-bold text-gray-500">
-                              전체 {inquiries.length}건 확인 완료
-                            </span>
-                          )}
-                        </div>
+                      <div className="space-y-1">
                         <p className="text-xl sm:text-2xl font-black text-[#1a2744] group-hover:text-[#2E7D32] transition-colors">
-                          🤝 새가족 등록 및 문의 확인하기
+                          새가족 및 문의
                         </p>
-                        <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-                          홈페이지를 방문한 새가족 등록 신청, 심방 요청, 행정 문의 내역을 읽고 연락 상태를 표시합니다.
+                        <p className="text-sm text-gray-500 font-semibold">
+                          등록 신청, 문의 확인
                         </p>
                       </div>
-                      <span className="inline-flex items-center justify-between w-full px-4 py-3 rounded-xl bg-[#1a2744] group-hover:bg-[#2E7D32] text-white text-sm sm:text-base font-black transition-colors">
-                        <span>새가족 및 문의함 열기</span>
-                        <span>→</span>
-                      </span>
+                      {pendingInquiriesCount > 0 ? (
+                        <span className="px-3.5 py-1.5 rounded-full bg-amber-500 text-white text-sm font-black shrink-0">
+                          미확인 {pendingInquiriesCount}건
+                        </span>
+                      ) : (
+                        <span className="px-3.5 py-1.5 rounded-full bg-gray-100 text-gray-600 text-sm font-bold shrink-0">
+                          {inquiries.length}건
+                        </span>
+                      )}
                     </button>
 
                     <button
                       type="button"
                       onClick={() => selectAdminTab("gallery")}
-                      className="group bg-white hover:bg-[#F8FAF8] rounded-2xl border-2 border-gray-200 hover:border-[#2E7D32] p-5 sm:p-6 text-left shadow-xs transition-all flex flex-col justify-between gap-4"
+                      className="group bg-white hover:bg-[#F8FAF8] rounded-2xl border-2 border-gray-200 hover:border-[#2E7D32] p-6 sm:p-7 text-left shadow-xs transition-all flex items-center justify-between gap-4"
                     >
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E8F5E9] text-[#1B5E20] text-sm font-black">
-                            4번 · 사진 앨범
-                          </span>
-                          <span className="text-sm font-bold text-gray-500">
-                            공개 앨범 {visibleLegacyAlbumsCount}개
-                          </span>
-                        </div>
+                      <div className="space-y-1">
                         <p className="text-xl sm:text-2xl font-black text-[#1a2744] group-hover:text-[#2E7D32] transition-colors">
-                          📷 교회 행사 사진 및 영상 올리기
+                          사진 앨범
                         </p>
-                        <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-                          휴대폰이나 카메라로 찍은 예배와 행사 사진, 동영상을 새 앨범으로 묶어 올립니다.
+                        <p className="text-sm text-gray-500 font-semibold">
+                          예배, 행사 사진 등록
                         </p>
                       </div>
-                      <span className="inline-flex items-center justify-between w-full px-4 py-3 rounded-xl bg-[#1a2744] group-hover:bg-[#2E7D32] text-white text-sm sm:text-base font-black transition-colors">
-                        <span>사진 앨범 관리 열기</span>
-                        <span>→</span>
+                      <span className="px-3.5 py-1.5 rounded-full bg-[#E8F5E9] text-[#1B5E20] text-sm font-black shrink-0">
+                        {visibleLegacyAlbumsCount}개
                       </span>
                     </button>
                   </div>
                 </section>
 
-                {/* Section 2: Homepage Background / Representative Photos & Top Banner */}
-                <section className="space-y-3.5">
-                  <div className="flex items-center gap-2.5">
-                    <span className="px-3 py-1 rounded-full bg-[#2E7D32] text-white text-xs sm:text-sm font-black">
-                      화면 배경 및 알림 꾸미기
-                    </span>
-                    <h3 className="text-lg sm:text-xl font-black text-[#1a2744]">
-                      홈페이지 대표 사진, 메인 배경 이미지, 상단 한 줄 알림 바꾸기
-                    </h3>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button
-                      type="button"
-                      onClick={() => selectAdminTab("hero-cube")}
-                      className="bg-white hover:bg-[#F8FAF8] rounded-2xl border border-gray-200 hover:border-[#2E7D32] p-5 text-left shadow-xs transition-all space-y-1.5"
-                    >
-                      <p className="text-lg sm:text-xl font-black text-[#1a2744]">
-                        🖼️ 홈페이지 대표 사진 및 메인 배경 바꾸기
-                      </p>
-                      <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-                        첫 화면 맨 위 큰 배경 사진, 카카오톡 공유 대표 사진, 비전 배너 사진, 로고, 우측 회전 큐브 사진 6장을 바꿉니다.
-                      </p>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => selectAdminTab("top-banner")}
-                      className="bg-white hover:bg-[#F8FAF8] rounded-2xl border border-gray-200 hover:border-[#2E7D32] p-5 text-left shadow-xs transition-all space-y-1.5"
-                    >
-                      <p className="text-lg sm:text-xl font-black text-[#1a2744]">
-                        🔔 맨 위 한 줄 알림 문구 수정 ({draft.topBannerNotices.length}줄)
-                      </p>
-                      <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-                        홈페이지 가장 위쪽 남색 알림줄에 흐르는 예배 안내와 특별 집회 문구를 고칩니다.
-                      </p>
-                    </button>
-                  </div>
-                </section>
-
-                {/* Section 3: Notices, Events, Study Materials, Dormitory, Youth News */}
-                <section className="space-y-3.5">
-                  <h3 className="text-lg sm:text-xl font-black text-[#1a2744]">
-                    📢 소식, 행사, 교재 자료, 학사관 글 올리기
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                {/* Section 2: Boards & News */}
+                <section className="space-y-3">
+                  <h2 className="text-base sm:text-lg font-black text-[#1a2744] px-1">
+                    소식 및 게시판
+                  </h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                     {[
                       {
                         tab: "notices" as const,
-                        title: `교회 소식 공지 (${draft.notices.length}건)`,
-                        desc: "성도님들께 알리는 주요 공지글과 첨부파일 등록",
+                        title: "공지사항",
+                        count: `${draft.notices.length}건`,
                       },
                       {
                         tab: "events" as const,
-                        title: `교회 행사 일정 (${draft.events.length}건)`,
-                        desc: "절기 예배, 부흥성회, 수련회 일정 안내 등록",
+                        title: "행사 일정",
+                        count: `${draft.events.length}건`,
                       },
                       {
                         tab: "resources" as const,
-                        title: `교재 및 성경공부 자료 (${draft.resources.length}건)`,
-                        desc: "설교 요약, 요리문답, 주일학교 교재 파일 등록",
+                        title: "교재 자료",
+                        count: `${draft.resources.length}건`,
                       },
                       {
                         tab: "community" as const,
-                        title: `다음 세대 부서 소식 (${draft.communityPosts.length}건)`,
-                        desc: "유초등부, 중고등부, 청년부 활동 소식 등록",
+                        title: "부서 소식",
+                        count: `${draft.communityPosts.length}건`,
                       },
                     ].map((card) => (
                       <button
                         key={card.tab}
                         type="button"
                         onClick={() => selectAdminTab(card.tab)}
-                        className="bg-white hover:bg-[#F8FAF8] rounded-2xl border border-gray-200 hover:border-[#2E7D32] p-4 sm:p-5 text-left shadow-2xs transition-all space-y-1"
+                        className="bg-white hover:bg-[#F8FAF8] rounded-2xl border border-gray-200 hover:border-[#2E7D32] px-4 py-4 text-left shadow-2xs transition-all flex items-center justify-between gap-2"
                       >
-                        <p className="text-base sm:text-lg font-black text-[#1a2744]">
+                        <span className="text-base sm:text-lg font-black text-[#1a2744]">
                           {card.title}
-                        </p>
-                        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                          {card.desc}
-                        </p>
+                        </span>
+                        <span className="text-xs font-bold text-gray-400 shrink-0">
+                          {card.count}
+                        </span>
                       </button>
                     ))}
 
                     <button
                       type="button"
                       onClick={() => selectAdminTab("posts", "custom:dormitory")}
-                      className="bg-white hover:bg-[#F8FAF8] rounded-2xl border border-gray-200 hover:border-[#2E7D32] p-4 sm:p-5 text-left shadow-2xs transition-all space-y-1"
+                      className="bg-white hover:bg-[#F8FAF8] rounded-2xl border border-gray-200 hover:border-[#2E7D32] px-4 py-4 text-left shadow-2xs transition-all flex items-center justify-between gap-2"
                     >
-                      <p className="text-base sm:text-lg font-black text-[#1a2744]">
-                        일광학사관 게시판 관리
-                      </p>
-                      <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                        학사관 모집 안내문 및 입주원서 첨부파일 수정
-                      </p>
+                      <span className="text-base sm:text-lg font-black text-[#1a2744]">
+                        일광학사관
+                      </span>
                     </button>
                   </div>
                 </section>
 
-                {/* Section 4: Church About, Pastor, Staff, Worship Times, Offering */}
-                <section className="space-y-3.5">
-                  <h3 className="text-lg sm:text-xl font-black text-[#1a2744]">
-                    🏛️ 교회 소개, 교역자 명단, 예배 시간, 헌금 계좌 수정하기
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                {/* Section 3: Appearance & Church Info */}
+                <section className="space-y-3">
+                  <h2 className="text-base sm:text-lg font-black text-[#1a2744] px-1">
+                    화면 및 교회 정보
+                  </h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                     {[
-                      {
-                        tab: "greeting" as const,
-                        title: "담임목사 인사말 및 사진",
-                        desc: "환영 인사말 문구와 프로필 사진 교체",
-                      },
-                      {
-                        tab: "pastor-bio" as const,
-                        title: "담임목사 약력",
-                        desc: "학력 및 사역 경력 사항 수정",
-                      },
-                      {
-                        tab: "staff" as const,
-                        title: `섬기는 사람들 (${draft.staff.length}명)`,
-                        desc: "교역자, 장로 명단 및 3:4 증명사진 등록",
-                      },
-                      {
-                        tab: "history" as const,
-                        title: `교회 역사 (${draft.history.length}건)`,
-                        desc: "설립부터 현재까지의 연혁과 사료 관리",
-                      },
-                      {
-                        tab: "worship" as const,
-                        title: `예배 시간표 (${draft.worshipSchedule.length}개)`,
-                        desc: "주일 및 주중 예배 시간과 장소 수정",
-                      },
-                      {
-                        tab: "youth" as const,
-                        title: "다음 세대 부서 안내",
-                        desc: "유초등부, 중고등부, 청년부 모임 안내 수정",
-                      },
-                      {
-                        tab: "church-info" as const,
-                        title: "오시는 길 및 연락처",
-                        desc: "교회 주소, 전화번호, 대중교통 노선 수정",
-                      },
-                      {
-                        tab: "offering" as const,
-                        title: `온라인 헌금 계좌 (${draft.offeringAccounts.length}개)`,
-                        desc: "헌금 구분별 은행명과 계좌번호 수정",
-                      },
+                      { tab: "hero-cube" as const, title: "배경 및 대표 사진" },
+                      { tab: "top-banner" as const, title: "상단 한 줄 알림" },
+                      { tab: "greeting" as const, title: "담임목사 인사말" },
+                      { tab: "pastor-bio" as const, title: "담임목사 약력" },
+                      { tab: "staff" as const, title: "섬기는 사람들" },
+                      { tab: "history" as const, title: "교회 연혁" },
+                      { tab: "worship" as const, title: "예배 시간" },
+                      { tab: "youth" as const, title: "다음 세대 안내" },
+                      { tab: "church-info" as const, title: "오시는 길 및 연락처" },
+                      { tab: "offering" as const, title: "헌금 계좌" },
                     ].map((card) => (
                       <button
                         key={card.tab}
                         type="button"
                         onClick={() => selectAdminTab(card.tab)}
-                        className="bg-white hover:bg-[#F8FAF8] rounded-2xl border border-gray-200 hover:border-[#2E7D32] p-4 sm:p-5 text-left shadow-2xs transition-all space-y-1"
+                        className="bg-white hover:bg-[#F8FAF8] rounded-2xl border border-gray-200 hover:border-[#2E7D32] px-4 py-4 text-left shadow-2xs transition-all"
                       >
-                        <p className="text-base sm:text-lg font-black text-[#1a2744]">
+                        <span className="text-base sm:text-lg font-black text-[#1a2744]">
                           {card.title}
-                        </p>
-                        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                          {card.desc}
-                        </p>
+                        </span>
                       </button>
                     ))}
                   </div>
                 </section>
 
-                {/* Section 5: Collapsible Advanced Settings */}
-                <details className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5">
-                  <summary className="cursor-pointer select-none font-black text-sm sm:text-base text-gray-700 flex items-center justify-between">
-                    <span>
-                      ⚙️ 고급 메뉴 구성 및 전체 백업 설정 (평소에는 열지 않으셔도 됩니다)
-                    </span>
-                    <span className="text-xs font-bold text-[#2E7D32]">펼치기 ▼</span>
+                {/* Section 4: Collapsible System Settings */}
+                <details className="bg-white rounded-2xl border border-gray-200 px-5 py-4">
+                  <summary className="cursor-pointer select-none font-bold text-sm text-gray-600 flex items-center justify-between">
+                    <span>메뉴 구성 및 데이터 백업</span>
+                    <span className="text-xs font-bold text-gray-400">펼치기</span>
                   </summary>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-4 mt-4 border-t border-gray-100">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 mt-3 border-t border-gray-100">
                     <button
                       type="button"
                       onClick={() => selectAdminTab("menus")}
-                      className="rounded-xl bg-[#F8FAF8] hover:bg-[#E8F5E9] border border-gray-200 p-4 text-left space-y-1 transition-colors"
+                      className="rounded-xl bg-[#F8FAF8] hover:bg-[#E8F5E9] border border-gray-200 px-4 py-3.5 text-left text-sm sm:text-base font-black text-[#1a2744] transition-colors"
                     >
-                      <p className="text-sm sm:text-base font-black text-[#1a2744]">
-                        상단 메뉴 및 새 게시판 추가
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        홈페이지 상단 메뉴 순서 변경 및 맞춤 게시판 생성
-                      </p>
+                      메뉴 및 게시판 구성
                     </button>
                     <button
                       type="button"
                       onClick={() => selectAdminTab("posts")}
-                      className="rounded-xl bg-[#F8FAF8] hover:bg-[#E8F5E9] border border-gray-200 p-4 text-left space-y-1 transition-colors"
+                      className="rounded-xl bg-[#F8FAF8] hover:bg-[#E8F5E9] border border-gray-200 px-4 py-3.5 text-left text-sm sm:text-base font-black text-[#1a2744] transition-colors"
                     >
-                      <p className="text-sm sm:text-base font-black text-[#1a2744]">
-                        게시물 통합 이동 및 정리
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        다른 게시판으로 잘못 올린 글을 옮기거나 일괄 정리
-                      </p>
+                      게시물 통합 정리
                     </button>
                     <button
                       type="button"
                       onClick={() => selectAdminTab("backup")}
-                      className="rounded-xl bg-[#F8FAF8] hover:bg-[#E8F5E9] border border-gray-200 p-4 text-left space-y-1 transition-colors"
+                      className="rounded-xl bg-[#F8FAF8] hover:bg-[#E8F5E9] border border-gray-200 px-4 py-3.5 text-left text-sm sm:text-base font-black text-[#1a2744] transition-colors"
                     >
-                      <p className="text-sm sm:text-base font-black text-[#1a2744]">
-                        데이터 백업 파일 내려받기 및 복원
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        분기별 홈페이지 전체 데이터 보관용 파일 저장
-                      </p>
+                      데이터 백업
                     </button>
                   </div>
                 </details>
@@ -3101,7 +2823,7 @@ export function AdminStudio({
                           }`}
                         >
                           {inq.status === "접수대기"
-                            ? "✓ 연락완료로 체크"
+                            ? "연락완료로 변경"
                             : "접수대기로 되돌리기"}
                         </button>
                         <button
@@ -3178,18 +2900,15 @@ export function AdminStudio({
            ========================================================= */}
         {activeTab === "sermons" && (
           <div className="space-y-6">
-            {/* Method 1 (Easiest for Novices): 1-Click Automatic Channel Sync */}
+            {/* Method 1: 1-Click Automatic Channel Sync */}
             <div className="bg-white rounded-2xl border-2 border-[#2E7D32]/35 p-5 sm:p-6 space-y-4 shadow-xs">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="space-y-1">
-                  <span className="inline-block px-3 py-1 rounded-full bg-[#2E7D32] text-white text-xs sm:text-sm font-black">
-                    방법 1 — 가장 쉬움, 추천
-                  </span>
-                  <h2 className="text-xl sm:text-2xl font-black text-[#1a2744] pt-1">
-                    주소 복사 없이 최신 설교 영상 한 번에 가져오기
+                  <h2 className="text-xl sm:text-2xl font-black text-[#1a2744]">
+                    최신 설교 자동 불러오기
                   </h2>
-                  <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-                    교회 유튜브 채널에 새 설교 영상이 올라갔다면 아래 초록색 버튼만 한 번 누르세요. 제목, 예배 구분, 날짜를 자동으로 찾아 등록합니다.
+                  <p className="text-sm text-gray-600">
+                    교회 유튜브 채널의 새 설교를 자동으로 찾아 등록합니다.
                   </p>
                 </div>
                 <Link
@@ -3197,7 +2916,7 @@ export function AdminStudio({
                   target="_blank"
                   className="px-4 py-2 rounded-full bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white text-xs sm:text-sm font-bold transition-colors whitespace-nowrap shrink-0"
                 >
-                  성도 설교 화면 보기 ↗
+                  설교 화면 보기
                 </Link>
               </div>
 
@@ -3205,30 +2924,25 @@ export function AdminStudio({
                 type="button"
                 disabled={syncingYtChannel || saving}
                 onClick={() => void handleSyncYoutubeChannel()}
-                className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-base sm:text-lg font-black shadow-md transition-colors disabled:opacity-60"
+                className="w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-base font-black shadow-sm transition-colors disabled:opacity-60"
               >
                 {syncingYtChannel
-                  ? "교회 유튜브 채널에서 새 설교 찾는 중..."
-                  : "🎬 버튼 한 번으로 최신 설교 자동 불러오기"}
+                  ? "유튜브 채널 확인 중..."
+                  : "최신 설교 자동 불러오기"}
               </button>
             </div>
 
             {/* Method 2: Paste Specific YouTube URL */}
             <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 space-y-4">
-              <div>
-                <span className="inline-block px-2.5 py-0.5 rounded-full bg-gray-100 text-[#1a2744] text-xs font-extrabold mb-1">
-                  방법 2 — 개별 영상 직접 등록
-                </span>
-                <h3 className="text-base sm:text-lg font-black text-[#1a2744]">
-                  특정 유튜브 영상 주소를 직접 붙여넣어 올리기
-                </h3>
-              </div>
+              <h3 className="text-base sm:text-lg font-black text-[#1a2744]">
+                유튜브 주소 직접 등록
+              </h3>
 
               {/* Paste URL + Auto Fetch */}
               <div className="flex flex-col sm:flex-row gap-2.5 bg-[#F8FAF8] p-4 rounded-xl border border-[#2E7D32]/25">
                 <input
                   type="text"
-                  placeholder="1단계: 여기에 유튜브 영상 주소 붙여넣기"
+                  placeholder="유튜브 영상 주소 붙여넣기"
                   value={newSermonUrl}
                   onChange={(e) => setNewSermonUrl(e.target.value)}
                   className="flex-1 min-w-0 rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm sm:text-base"
@@ -3239,9 +2953,7 @@ export function AdminStudio({
                   onClick={() => void handleFetchYoutubeMeta()}
                   className="px-5 py-2.5 rounded-xl bg-[#1a2744] hover:bg-[#2E7D32] text-white text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 transition-colors disabled:opacity-60"
                 >
-                  {fetchingYt
-                    ? "불러오는 중..."
-                    : "2단계: 유튜브 제목 자동 채우기"}
+                  {fetchingYt ? "불러오는 중..." : "제목 자동 채우기"}
                 </button>
               </div>
 
@@ -3253,7 +2965,7 @@ export function AdminStudio({
                     className="w-28 aspect-video rounded-lg object-cover border border-gray-200"
                   />
                   <span>
-                    예배 종류, 제목, 성경 본문, 날짜가 입력되었습니다. 확인 후 [3단계: 설교 등록하기]를 눌러 주세요.
+                    영상 정보가 입력되었습니다. 확인 후 등록하기를 눌러 주세요.
                   </span>
                 </div>
               )}
@@ -3306,7 +3018,7 @@ export function AdminStudio({
               <div className="flex flex-wrap items-center justify-between gap-2.5">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span className="text-xs font-bold text-gray-600 mr-1">
-                    설교자 이름 누르면 자동 입력:
+                    설교자 선택:
                   </span>
                   {[
                     `${draft.pastorProfile.name} 담임목사`,
@@ -3344,7 +3056,7 @@ export function AdminStudio({
                   onClick={() => void handleAddAndPublishSermon()}
                   className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#2E7D32] text-white text-sm font-black hover:bg-[#1B5E20] whitespace-nowrap shrink-0 disabled:opacity-60"
                 >
-                  3단계: + 설교 등록하기
+                  설교 등록하기
                 </button>
               </div>
             </div>
@@ -5793,22 +5505,17 @@ export function AdminStudio({
         {activeTab === "gallery" && (
           <div className="space-y-6">
             {/* 1. Create New Gallery Album */}
-            <div className="bg-white rounded-2xl border-2 border-[#2E7D32]/30 p-5 sm:p-6 space-y-4 shadow-xs">
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 space-y-4 shadow-xs">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-black text-[#1a2744]">
-                    📷 새 앨범 사진 및 동영상 올리기
-                  </h2>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                    ① 앨범 제목을 먼저 적고 ② 사진이나 영상을 선택하면 바로 등록됩니다.
-                  </p>
-                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-[#1a2744]">
+                  새 앨범 등록
+                </h2>
                 <Link
                   href="/news/gallery"
                   target="_blank"
                   className="px-4 py-2 rounded-full bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white text-xs sm:text-sm font-bold transition-colors whitespace-nowrap shrink-0"
                 >
-                  앨범 화면 보기 ↗
+                  앨범 화면 보기
                 </Link>
               </div>
 
@@ -5816,7 +5523,7 @@ export function AdminStudio({
                 <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px] gap-3.5">
                   <div>
                     <label className="block text-sm font-extrabold text-[#1a2744] mb-1.5">
-                      1단계: 앨범 제목 먼저 적기 *
+                      1. 앨범 제목 *
                     </label>
                     <input
                       type="text"
@@ -5836,7 +5543,7 @@ export function AdminStudio({
                   </div>
                   <div>
                     <label className="block text-sm font-extrabold text-[#1a2744] mb-1.5">
-                      행사 날짜
+                      날짜
                     </label>
                     <input
                       type="date"
@@ -5850,7 +5557,7 @@ export function AdminStudio({
 
                 <div>
                   <span className="block text-sm font-extrabold text-[#1a2744] mb-2">
-                    2단계: 어떤 종류의 앨범인가요? — 눌러서 선택
+                    2. 분류 선택
                   </span>
                   <div className="flex flex-wrap gap-2">
                     {PRESET_GALLERY_TAGS.map((tag) => {
@@ -5880,7 +5587,7 @@ export function AdminStudio({
 
                 <textarea
                   rows={2}
-                  placeholder="짧은 앨범 소개글 — 선택 사항이며 안 적으셔도 됩니다"
+                  placeholder="소개글 — 선택 사항"
                   value={newAlbumContent}
                   onChange={(e) => setNewAlbumContent(e.target.value)}
                   className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm sm:text-base leading-relaxed"
@@ -5889,7 +5596,7 @@ export function AdminStudio({
                 {stagedGalleryFiles.length > 0 && (
                   <div className="rounded-xl bg-amber-50 border-2 border-amber-400 p-4 flex flex-wrap items-center justify-between gap-3">
                     <p className="text-sm sm:text-base font-black text-amber-950">
-                      📷 선택한 파일 {stagedGalleryFiles.length}개가 준비되어 있습니다. 위 1단계 제목을 적으셨다면 오른쪽 버튼을 눌러 주세요!
+                      선택한 파일 {stagedGalleryFiles.length}개가 대기 중입니다. 앨범 제목을 적은 뒤 오른쪽 버튼을 눌러 주세요.
                     </p>
                     <div className="flex items-center gap-2">
                       <button
@@ -5900,7 +5607,7 @@ export function AdminStudio({
                         }
                         className="px-5 py-2.5 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-sm font-black shadow-xs transition-colors"
                       >
-                        ✓ 담아 둔 파일 {stagedGalleryFiles.length}개 지금 올리기
+                        대기 파일 {stagedGalleryFiles.length}개 올리기
                       </button>
                       <button
                         type="button"
@@ -5915,7 +5622,7 @@ export function AdminStudio({
 
                 <div className="space-y-2 pt-1">
                   <p className="text-sm font-extrabold text-[#1a2744]">
-                    3단계: 아래 초록색 버튼을 눌러 사진이나 동영상을 골라 주세요
+                    3. 사진 또는 동영상 선택
                   </p>
                   <label
                     className={`block w-full sm:w-auto sm:inline-block px-7 py-3.5 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-base font-black text-center cursor-pointer shadow-sm transition-colors ${
@@ -5923,8 +5630,8 @@ export function AdminStudio({
                     }`}
                   >
                     {creatingAlbum
-                      ? "사진 및 동영상 올리는 중..."
-                      : "📷 사진 또는 동영상 선택해 바로 올리기"}
+                      ? "올리는 중..."
+                      : "사진 및 동영상 선택하기"}
                     <input
                       type="file"
                       multiple
@@ -6376,7 +6083,7 @@ export function AdminStudio({
                                           }`}
                                         >
                                           {inHeroCube
-                                            ? "✓ 메인 3D 큐브 등록됨"
+                                            ? "메인 3D 큐브 등록됨"
                                             : "메인 3D 큐브로 추가"}
                                         </button>
                                         <div className="flex items-center justify-between gap-1">
@@ -6490,20 +6197,15 @@ export function AdminStudio({
             {/* 1. Main Hero, Share Thumbnail, Mission Banner, Subpage Banner & Logo Studio */}
             <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 space-y-5 shadow-xs">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-black text-[#1a2744]">
-                    홈페이지 대표 사진 및 배경 이미지 바꾸기
-                  </h2>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                    새 사진을 선택하면 업로드와 동시에 홈페이지에 즉시 반영되며 언제든 [기본 사진 복원]으로 되돌릴 수 있습니다.
-                  </p>
-                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-[#1a2744]">
+                  배경 및 대표 사진
+                </h2>
                 <Link
                   href="/"
                   target="_blank"
                   className="px-4 py-2 rounded-full bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white text-xs sm:text-sm font-bold transition-colors whitespace-nowrap shrink-0"
                 >
-                  메인 화면 직접 보기 ↗
+                  메인 화면 보기
                 </Link>
               </div>
 
@@ -6511,34 +6213,23 @@ export function AdminStudio({
                 {/* Slot 1: Main Top Hero Sanctuary Background */}
                 <div className="rounded-2xl border border-gray-200 bg-[#F8FAF8] p-4 space-y-3 flex flex-col justify-between">
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="px-2.5 py-0.5 rounded-full bg-[#1a2744] text-white text-xs font-extrabold">
-                        메인 맨 위 배경
-                      </span>
-                      <span className="text-xs text-gray-500 font-semibold">
-                        가로형 고화질 사진 권장
-                      </span>
-                    </div>
                     <h3 className="text-base sm:text-lg font-black text-[#1a2744]">
-                      첫 화면 환영 문구 뒷배경 사진
+                      메인 상단 배경 사진
                     </h3>
-                    <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                      홈페이지에 처음 들어갔을 때 맨 위 어두운 남색 필름 아래에 깔리는 대표 본당 배경 이미지입니다.
-                    </p>
                     <div className="aspect-[16/9] rounded-xl overflow-hidden bg-[#1a2744] relative border border-gray-200">
                       <img
                         src={
                           draft.churchInfo.heroBackgroundUrl?.trim() ||
                           "/c01/Hero001.png"
                         }
-                        alt="첫 화면 배경 미리보기"
+                        alt="메인 상단 배경 미리보기"
                         className="w-full h-full object-cover"
                       />
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 pt-1">
                     <label className="px-4 py-2.5 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs sm:text-sm font-black cursor-pointer transition-colors">
-                      + 새 배경 사진 선택해 바꾸기
+                      사진 변경
                       <input
                         type="file"
                         accept={ADMIN_IMAGE_ACCEPT}
@@ -6577,20 +6268,9 @@ export function AdminStudio({
                 {/* Slot 2: KakaoTalk / SMS OpenGraph Link Share Representative Photo */}
                 <div className="rounded-2xl border border-gray-200 bg-[#F8FAF8] p-4 space-y-3 flex flex-col justify-between">
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="px-2.5 py-0.5 rounded-full bg-[#2E7D32] text-white text-xs font-extrabold">
-                        홈페이지 대표 프로필 사진
-                      </span>
-                      <span className="text-xs text-gray-500 font-semibold">
-                        카카오톡, 문자 링크 공유용
-                      </span>
-                    </div>
                     <h3 className="text-base sm:text-lg font-black text-[#1a2744]">
-                      주소 공유 시 뜨는 대표 미리보기 사진
+                      카카오톡 공유 대표 사진
                     </h3>
-                    <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                      카카오톡이나 문자 메시지로 교회 홈페이지 주소를 보낼 때 함께 나타나는 대표 사진입니다.
-                    </p>
                     <div className="aspect-[16/9] rounded-xl overflow-hidden bg-gray-200 relative border border-gray-200">
                       <img
                         src={
@@ -6604,7 +6284,7 @@ export function AdminStudio({
                   </div>
                   <div className="flex flex-wrap items-center gap-2 pt-1">
                     <label className="px-4 py-2.5 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs sm:text-sm font-black cursor-pointer transition-colors">
-                      + 새 대표 사진 선택해 바꾸기
+                      사진 변경
                       <input
                         type="file"
                         accept={ADMIN_IMAGE_ACCEPT}
@@ -6643,15 +6323,9 @@ export function AdminStudio({
                 {/* Slot 3: Main Page Middle Mission Community Card Photo */}
                 <div className="rounded-2xl border border-gray-200 bg-[#F8FAF8] p-4 space-y-3 flex flex-col justify-between">
                   <div className="space-y-2">
-                    <span className="inline-block px-2.5 py-0.5 rounded-full bg-[#1a2744] text-white text-xs font-extrabold">
-                      메인 화면 중간 소개 사진
-                    </span>
                     <h3 className="text-base sm:text-lg font-black text-[#1a2744]">
-                      메인 중간 비전 소개 옆 공동체 사진
+                      메인 중간 소개 사진
                     </h3>
-                    <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                      메인 화면 아래로 내려가면 나오는 교회 비전 인용구 왼쪽의 액자 사진과 뒷배경입니다.
-                    </p>
                     <div className="aspect-[16/9] rounded-xl overflow-hidden bg-[#1a2744] relative border border-gray-200">
                       <img
                         src={
@@ -6665,7 +6339,7 @@ export function AdminStudio({
                   </div>
                   <div className="flex flex-wrap items-center gap-2 pt-1">
                     <label className="px-4 py-2.5 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs sm:text-sm font-black cursor-pointer transition-colors">
-                      + 액자 사진 바꾸기
+                      앞 사진 변경
                       <input
                         type="file"
                         accept={ADMIN_IMAGE_ACCEPT}
@@ -6683,7 +6357,7 @@ export function AdminStudio({
                       />
                     </label>
                     <label className="px-3.5 py-2.5 rounded-xl border border-[#1a2744] bg-white hover:bg-gray-50 text-[#1a2744] text-xs sm:text-sm font-bold cursor-pointer">
-                      뒷배경 바꾸기
+                      뒷배경 변경
                       <input
                         type="file"
                         accept={ADMIN_IMAGE_ACCEPT}
@@ -6731,15 +6405,9 @@ export function AdminStudio({
                 {/* Slot 4: Subpage Common Header Banner + Church Logo */}
                 <div className="rounded-2xl border border-gray-200 bg-[#F8FAF8] p-4 space-y-3 flex flex-col justify-between">
                   <div className="space-y-2">
-                    <span className="inline-block px-2.5 py-0.5 rounded-full bg-slate-700 text-white text-xs font-extrabold">
-                      세부 메뉴 상단 배너 및 로고
-                    </span>
                     <h3 className="text-base sm:text-lg font-black text-[#1a2744]">
-                      세부 메뉴 공통 상단 배경 및 교회 로고 마크
+                      세부 화면 상단 배너 및 로고
                     </h3>
-                    <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                      주보 안내, 교회 소개 등 세부 메뉴 상단 제목 뒤에 우리 교회 사진을 공통으로 깔거나 상단 로고 마크를 바꿉니다.
-                    </p>
                     <div className="grid grid-cols-[1fr_110px] gap-2.5">
                       <div className="aspect-[16/9] rounded-xl overflow-hidden bg-[#1a2744] flex items-center justify-center border border-gray-200 relative">
                         {draft.churchInfo.defaultSubpageBannerUrl?.trim() ? (
@@ -6750,7 +6418,7 @@ export function AdminStudio({
                           />
                         ) : (
                           <span className="px-3 text-center text-xs font-bold text-white/85">
-                            현재 메뉴별 기본 배경 사용 중
+                            기본 배경 사용 중
                           </span>
                         )}
                       </div>
@@ -6764,7 +6432,7 @@ export function AdminStudio({
                           className="w-8 h-11 object-contain"
                         />
                         <span className="text-[11px] text-white/80 font-bold mt-1">
-                          현재 로고
+                          로고
                         </span>
                       </div>
                     </div>
@@ -6772,7 +6440,7 @@ export function AdminStudio({
 
                   <div className="flex flex-wrap items-center gap-2 pt-1">
                     <label className="px-3.5 py-2.5 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs sm:text-sm font-black cursor-pointer transition-colors">
-                      + 세부 메뉴 공통 배경 올리기
+                      상단 배너 변경
                       <input
                         type="file"
                         accept={ADMIN_IMAGE_ACCEPT}
@@ -9297,8 +8965,8 @@ export function AdminStudio({
                   {saving
                     ? "저장 중..."
                     : isDirty
-                      ? "● 수정한 내용 홈페이지에 저장하기"
-                      : "✓ 변경사항 저장하기"}
+                      ? "수정 내용 저장하기"
+                      : "변경사항 저장하기"}
                 </button>
               </div>
             )}

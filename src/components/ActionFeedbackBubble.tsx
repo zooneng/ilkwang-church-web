@@ -80,7 +80,6 @@ export function ActionFeedbackBubble({ text, tone }: ActionFeedbackBubbleProps) 
           : "bg-[#E8F5E9] border-[#2E7D32] text-[#1B5E20]"
       }`}
     >
-      {tone === "error" ? "⚠ " : "✓ "}
       {text}
     </div>,
     document.body

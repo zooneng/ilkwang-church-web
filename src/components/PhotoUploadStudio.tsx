@@ -126,7 +126,6 @@ export function PhotoUploadStudio({
           inlineFeedback.ok ? "text-[#2E7D32]" : "text-red-700"
         }`}
       >
-        {inlineFeedback.ok ? "✓ " : "⚠ "}
         {inlineFeedback.text}
       </p>
     );
@@ -375,18 +374,8 @@ export function PhotoUploadStudio({
     <div className="min-h-screen bg-[#F4F7F5] pb-20">
       {/* Top Banner */}
       <div className="bg-[#1a2744] text-white border-t border-white/10">
-        <div className="max-w-[1200px] mx-auto px-5 sm:px-6 py-6 sm:py-7 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <span className="inline-block px-3 py-0.5 rounded-full bg-[#2E7D32] text-xs font-bold mb-2">
-              {role === "photo_admin" ? "사진 업로드 전용 계정" : "사이트 관리자"}
-            </span>
-            <h1 className="text-xl sm:text-2xl font-black">
-              교회 앨범 사진 및 동영상 올리기
-            </h1>
-            <p className="text-xs sm:text-sm text-white/80 mt-1">
-              ① 앨범 제목을 먼저 적고 ② 사진이나 영상을 고르면 홈페이지 앨범에 바로 올라갑니다.
-            </p>
-          </div>
+        <div className="max-w-[1200px] mx-auto px-5 sm:px-6 py-5 sm:py-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <h1 className="text-xl sm:text-2xl font-black">사진 앨범 올리기</h1>
 
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -399,7 +388,7 @@ export function PhotoUploadStudio({
                   : "bg-white/10 hover:bg-white/20 border-white/30 text-white"
               }`}
             >
-              {largePrint ? "🔍 큰 글씨 보기 켜짐 ✓" : "🔍 큰 글씨로 보기"}
+              {largePrint ? "큰 글씨 켜짐" : "큰 글씨"}
             </button>
             <a
               href="/church-admin-easy-manual.pdf"
@@ -407,21 +396,21 @@ export function PhotoUploadStudio({
               rel="noopener noreferrer"
               className="px-4 py-2 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-white text-xs sm:text-sm font-bold transition-colors"
             >
-              📖 쉬운 그림 설명서
+              설명서 PDF
             </a>
             {role === "site_admin" && (
               <Link
                 href="/admin"
                 className="px-4 py-2 rounded-full bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs sm:text-sm font-bold transition-colors"
               >
-                🏠 관리자 첫 화면 →
+                전체 메뉴
               </Link>
             )}
             <Link
               href="/news/gallery"
               className="px-4 py-2 rounded-full border border-white/40 text-white hover:bg-white hover:text-[#1a2744] text-xs sm:text-sm font-bold transition-colors"
             >
-              앨범 화면 보기 ↗
+              앨범 보기
             </Link>
             {(authRequired || role === "photo_admin") && (
               <button
@@ -473,24 +462,17 @@ export function PhotoUploadStudio({
           </div>
         )}
 
-        {/* 1. Upload New Album (Clear 3-Step Visual Box) */}
-        <section className="bg-white rounded-2xl border-2 border-[#2E7D32]/30 p-5 sm:p-6 space-y-4 shadow-xs">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-black text-[#1a2744]">
-                📷 새 앨범 사진 및 동영상 올리기
-              </h2>
-              <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                아이폰을 포함한 휴대폰이나 카메라로 찍은 사진 여러 장을 한꺼번에 선택해 올릴 수 있습니다.
-              </p>
-            </div>
-          </div>
+        {/* 1. Upload New Album */}
+        <section className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 space-y-4 shadow-xs">
+          <h2 className="text-xl sm:text-2xl font-black text-[#1a2744]">
+            새 앨범 등록
+          </h2>
 
           <div className="bg-[#F8FAF8] p-4 sm:p-5 rounded-2xl border border-gray-200 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px] gap-3.5">
               <div>
                 <label className="block text-sm font-extrabold text-[#1a2744] mb-1.5">
-                  1단계: 앨범 제목 먼저 적기 *
+                  1. 앨범 제목 *
                 </label>
                 <input
                   type="text"
@@ -509,7 +491,7 @@ export function PhotoUploadStudio({
               </div>
               <div>
                 <label className="block text-sm font-extrabold text-[#1a2744] mb-1.5">
-                  행사 날짜
+                  날짜
                 </label>
                 <input
                   type="date"
@@ -523,7 +505,7 @@ export function PhotoUploadStudio({
 
             <div>
               <span className="block text-sm font-extrabold text-[#1a2744] mb-2">
-                2단계: 어떤 종류의 앨범인가요? — 눌러서 선택
+                2. 분류 선택
               </span>
               <div className="flex flex-wrap gap-2">
                 {PRESET_GALLERY_TAGS.map((tag) => {
@@ -551,12 +533,12 @@ export function PhotoUploadStudio({
 
             <div>
               <label className="block text-sm font-extrabold text-gray-700 mb-1.5">
-                짧은 앨범 소개글 — 안 적으셔도 됩니다
+                소개글 — 선택 사항
               </label>
               <textarea
                 rows={2}
                 maxLength={5000}
-                placeholder="예: 온 성도가 함께 감사 찬양을 드렸습니다."
+                placeholder="비워 두셔도 됩니다."
                 value={newContent}
                 onChange={(e) => setNewContent(e.target.value)}
                 className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm sm:text-base leading-relaxed focus:border-[#2E7D32] focus:outline-none"
@@ -566,7 +548,7 @@ export function PhotoUploadStudio({
             {stagedFiles.length > 0 && (
               <div className="rounded-xl bg-amber-50 border-2 border-amber-400 p-4 flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm sm:text-base font-black text-amber-950">
-                  📷 선택한 파일 {stagedFiles.length}개가 준비되어 있습니다. 위 1단계 제목을 적으셨다면 오른쪽 버튼을 눌러 주세요!
+                  선택한 파일 {stagedFiles.length}개가 대기 중입니다. 앨범 제목을 적은 뒤 오른쪽 버튼을 눌러 주세요.
                 </p>
                 <div className="flex items-center gap-2">
                   <button
@@ -575,7 +557,7 @@ export function PhotoUploadStudio({
                     onClick={() => void handleCreateAlbumWithMedia(stagedFiles)}
                     className="px-5 py-2.5 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-sm font-black shadow-xs transition-colors"
                   >
-                    ✓ 담아 둔 파일 {stagedFiles.length}개 지금 올리기
+                    대기 파일 {stagedFiles.length}개 올리기
                   </button>
                   <button
                     type="button"
@@ -590,7 +572,7 @@ export function PhotoUploadStudio({
 
             <div className="space-y-2 pt-1">
               <p className="text-sm font-extrabold text-[#1a2744]">
-                3단계: 아래 초록색 버튼을 눌러 사진이나 동영상을 골라 주세요
+                3. 사진 또는 동영상 선택
               </p>
               <label
                 className={`block w-full sm:w-auto sm:inline-block px-7 py-3.5 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-base font-black text-center cursor-pointer shadow-sm transition-colors ${
@@ -598,8 +580,8 @@ export function PhotoUploadStudio({
                 }`}
               >
                 {uploadingStatus
-                  ? "사진 및 영상 올리는 중..."
-                  : "📷 사진 또는 동영상 선택해 바로 올리기"}
+                  ? "올리는 중..."
+                  : "사진 및 동영상 선택하기"}
                 <input
                   type="file"
                   multiple

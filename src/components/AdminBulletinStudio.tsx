@@ -116,33 +116,24 @@ function BulletinProofreadPanel({
 
   if (issues.length === 0) {
     return (
-      <div className="rounded-2xl bg-[#E8F5E9] border-2 border-[#2E7D32]/40 px-4 sm:px-5 py-4 flex items-start gap-3">
-        <span className="text-xl leading-none mt-0.5 shrink-0">✅</span>
-        <div className="space-y-1">
-          <p className="text-sm sm:text-base font-black text-[#1B5E20]">
-            자동 오탈자 및 날짜 점검 완료 — 특이사항 없음
-          </p>
-          <p className="text-xs sm:text-sm text-[#1B5E20]/90 leading-relaxed">
-            예배일 중복, 필수 항목 누락, 자주 틀리는 한글 맞춤법 오타가 발견되지 않았습니다. 아래 성도 성함과 시간만 눈으로 한 번 확인하신 뒤 게시해 주세요.
-          </p>
-        </div>
+      <div className="rounded-2xl bg-[#E8F5E9] border border-[#2E7D32]/40 px-4 sm:px-5 py-3.5">
+        <p className="text-sm sm:text-base font-black text-[#1B5E20]">
+          자동 점검 완료 — 발견된 맞춤법 및 날짜 이상 없음
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl bg-amber-50 border-2 border-amber-400 p-4 sm:p-5 space-y-3.5">
+    <div className="rounded-2xl bg-amber-50 border-2 border-amber-400 p-4 sm:p-5 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <span className="text-xl leading-none">🔍</span>
-          <div>
-            <p className="text-sm sm:text-base font-black text-amber-950">
-              게시 전 확인해 볼 항목이 {issues.length}건 있습니다
-            </p>
-            <p className="text-xs sm:text-sm text-amber-900/85 mt-0.5">
-              노란색으로 표시된 부분을 확인하거나 오른쪽 버튼으로 바로 고칠 수 있습니다. 의도한 표현이면 그대로 게시하셔도 됩니다.
-            </p>
-          </div>
+        <div>
+          <p className="text-sm sm:text-base font-black text-amber-950">
+            확인할 항목 {issues.length}건
+          </p>
+          <p className="text-xs sm:text-sm text-amber-900/85 mt-0.5">
+            오른쪽 버튼으로 바로 수정하거나 의도한 표현이면 그대로 게시하시면 됩니다.
+          </p>
         </div>
 
         {fixableIssues.length > 0 && (
@@ -151,7 +142,7 @@ function BulletinProofreadPanel({
             onClick={onApplyAllFixes}
             className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm font-black shadow-xs transition-colors shrink-0"
           >
-            ✨ 맞춤법 오타 {fixableIssues.length}건 한 번에 고치기
+            오타 {fixableIssues.length}건 한 번에 고치기
           </button>
         )}
       </div>
@@ -752,55 +743,36 @@ export function AdminBulletinStudio({
     <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 space-y-5 shadow-xs">
       {/* Clean Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-[#1a2744]">
-            주보 안내 ({bulletins.length}호)
-          </h2>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">
-            한글 주보 파일을 불러오면 홈페이지에 바로 올라가지 않고 먼저 오탈자 점검 창이 열립니다.
-          </p>
-        </div>
+        <h2 className="text-xl sm:text-2xl font-black text-[#1a2744]">
+          주보 올리기 ({bulletins.length}호)
+        </h2>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setComposerOpen((prev) => !prev)}
             className="px-4 py-2 rounded-full border border-[#2E7D32] text-[#2E7D32] hover:bg-[#E8F5E9] text-xs sm:text-sm font-bold transition-colors whitespace-nowrap shrink-0"
           >
-            {composerOpen ? "점검 및 작성창 접기 ▲" : "+ 빈 양식에 직접 작성 ▼"}
+            {composerOpen ? "작성창 닫기" : "직접 입력"}
           </button>
           <Link
             href="/news/bulletin"
             target="_blank"
             className="px-4 py-2 rounded-full bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white text-xs sm:text-sm font-bold transition-colors whitespace-nowrap shrink-0"
           >
-            실제 주보 화면 보기 ↗
+            주보 화면 보기
           </Link>
         </div>
       </div>
 
-      {/* Primary Action: Step-by-Step Weekly HWP Upload with Pre-Publish Proofreading */}
-      <div className="rounded-2xl bg-[#F8FAF8] border-2 border-[#2E7D32]/35 p-4 sm:p-6 space-y-4">
-        <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-extrabold text-[#1a2744]">
-          <span className="px-3 py-1 rounded-full bg-[#2E7D32] text-white">
-            1단계: 한글 파일 선택
-          </span>
-          <span className="text-gray-400">→</span>
-          <span className="px-3 py-1 rounded-full bg-white border border-gray-300">
-            2단계: 오탈자 및 미리보기 확인
-          </span>
-          <span className="text-gray-400">→</span>
-          <span className="px-3 py-1 rounded-full bg-white border border-gray-300">
-            3단계: 홈페이지에 게시
-          </span>
-        </div>
-
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      {/* Primary Action: Weekly HWP Upload */}
+      <div className="rounded-2xl bg-[#F8FAF8] border-2 border-[#2E7D32]/35 p-5 sm:p-6 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <h3 className="text-base sm:text-lg font-black text-[#1a2744]">
-              이번 주 한글 주보 불러오기 (.hwp, .hwpx)
+              이번 주 한글 주보 선택 (.hwp, .hwpx)
             </h3>
-            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-              주보 파일 1개를 고르면 게시 전에 설교 제목, 예배 순서, 소식, 축하 명단의 오탈자를 먼저 점검할 수 있습니다. (2개 이상 동시 선택 시 일괄 등록)
+            <p className="text-xs sm:text-sm text-gray-600">
+              파일을 고르면 게시 전에 내용을 먼저 확인할 수 있습니다.
             </p>
           </div>
 
@@ -810,10 +782,10 @@ export function AdminBulletinStudio({
             }`}
           >
             {parsingHwp
-              ? "주보 내용 분석 중..."
+              ? "주보 분석 중..."
               : bulkProgress
                 ? "일괄 등록 중..."
-                : "📄 주보 한글 파일 선택하기"}
+                : "한글 파일 선택하기"}
             <input
               type="file"
               multiple
@@ -836,7 +808,7 @@ export function AdminBulletinStudio({
             onChange={(e) => setAlsoAttachOriginalFile(e.target.checked)}
             className="w-4 h-4 rounded border-gray-300 text-[#2E7D32]"
           />
-          <span>성도님들이 원본 한글 파일도 내려받을 수 있게 함께 첨부하기</span>
+          <span>원본 한글 파일도 함께 첨부</span>
         </label>
 
         {bulkProgress && (
@@ -850,18 +822,18 @@ export function AdminBulletinStudio({
       {composerOpen && (
         <div className="rounded-2xl bg-[#F8FAF8] border-2 border-[#1a2744]/20 p-4 sm:p-6 space-y-5 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-xl p-4 border border-gray-200">
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-full bg-[#1a2744] text-white text-xs font-extrabold">
-                  게시 전 점검 중
+                  게시 전 확인
                 </span>
                 <p className="text-sm sm:text-base font-black text-[#1a2744]">
-                  오탈자와 날짜를 확인한 뒤 맨 아래 [확인 완료 — 주보 게시하기]를 눌러 주세요
+                  내용 확인 후 맨 아래 [주보 게시하기]를 눌러 주세요
                 </p>
               </div>
               {parsedSourceName && (
                 <p className="text-xs sm:text-sm font-bold text-[#2E7D32]">
-                  불러온 파일: {parsedSourceName} (아직 홈페이지에 게시되지 않았습니다)
+                  파일: {parsedSourceName}
                 </p>
               )}
             </div>
@@ -1237,7 +1209,7 @@ export function AdminBulletinStudio({
                 onClick={() => void handlePublishNewBulletin()}
                 className="px-6 py-3 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-sm sm:text-base font-black shadow-md transition-colors disabled:opacity-50"
               >
-                ✓ 확인 완료 — 홈페이지에 주보 게시하기
+                주보 게시하기
               </button>
             </div>
           </div>
