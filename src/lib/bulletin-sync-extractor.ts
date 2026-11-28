@@ -3,6 +3,7 @@ import {
   splitBulletinNewsAndSchedule,
 } from "@/lib/format-utils";
 import { addDaysToIsoDate } from "@/lib/popup-utils";
+import { isLikelyQuarterlyEventTitle } from "@/lib/quarterly-events";
 import type {
   BulletinItem,
   EventItem,
@@ -13,6 +14,7 @@ import type {
 export interface ProposedBulletinEvent {
   readonly key: string;
   readonly checked: boolean;
+  readonly quarterlyRepeat: boolean;
   readonly alreadyExists: boolean;
   readonly isPast: boolean;
   readonly date: string;
@@ -598,6 +600,7 @@ export function extractBulletinSyncPlan(
     return {
       key: `ev-${cand.date}-${idx}`,
       checked,
+      quarterlyRepeat: isLikelyQuarterlyEventTitle(cand.title),
       alreadyExists,
       isPast,
       date: cand.date,

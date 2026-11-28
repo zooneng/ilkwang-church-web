@@ -133,6 +133,7 @@ export interface EventItem {
   readonly timeText: string;
   readonly location: string;
   readonly description: string;
+  readonly recurrence?: "none" | "quarterly";
   readonly attachmentUrl?: string;
   readonly attachmentName?: string;
 }

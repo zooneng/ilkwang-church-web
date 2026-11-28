@@ -64,6 +64,7 @@ export function ChurchEventsBrowser({
 
   // Default mode requested by user: "quarter" (3 months shown together at once)
   const [periodMode, setPeriodMode] = useState<EventPeriodMode>("quarter");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [selectedYear, setSelectedYear] = useState<number>(refYear);
   const [selectedQuarter, setSelectedQuarter] = useState<1 | 2 | 3 | 4>(
     defaultQuarter
@@ -102,8 +103,8 @@ export function ChurchEventsBrowser({
     for (let m = activeRange.startMonth; m <= activeRange.endMonth; m += 1) {
       list.push(m);
     }
-    return list;
-  }, [activeRange.endMonth, activeRange.startMonth]);
+    return sortOrder === "desc" ? [...list].reverse() : list;
+  }, [activeRange.endMonth, activeRange.startMonth, sortOrder]);
 
   const yearEvents = useMemo(
     () => normalizedEvents.filter((evt) => evt.yearNum === selectedYear),
@@ -198,6 +199,35 @@ export function ChurchEventsBrowser({
                 </button>
               );
             })}
+          </div>
+
+          <div
+            role="group"
+            aria-label="일정 정렬 순서"
+            className="inline-flex rounded-full bg-[#F4F7F5] p-1 border border-gray-200"
+          >
+            <button
+              type="button"
+              onClick={() => setSortOrder("asc")}
+              className={`px-3 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
+                sortOrder === "asc"
+                  ? "bg-[#1a2744] text-white shadow-xs"
+                  : "text-gray-600 hover:text-[#1a2744]"
+              }`}
+            >
+              일정 오름차순
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortOrder("desc")}
+              className={`px-3 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap ${
+                sortOrder === "desc"
+                  ? "bg-[#1a2744] text-white shadow-xs"
+                  : "text-gray-600 hover:text-[#1a2744]"
+              }`}
+            >
+              일정 내림차순
+            </button>
           </div>
 
           <AdminEditLink
@@ -330,9 +360,13 @@ export function ChurchEventsBrowser({
       ) : (
         <div className="space-y-8">
           {monthsInWindow.map((month) => {
-            const monthEvents = visibleEvents.filter(
+            const rawMonthEvents = visibleEvents.filter(
               (evt) => evt.monthNum === month
             );
+            const monthEvents =
+              sortOrder === "desc"
+                ? [...rawMonthEvents].reverse()
+                : rawMonthEvents;
             if (monthEvents.length === 0 && periodMode === "annual") {
               return null;
             }

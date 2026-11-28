@@ -31,6 +31,7 @@
 
 | 메뉴 이름 | 성도 접속 주소 | 관리자 편집 경로 | 주요 지원 기능 |
 |---|---|---|---|
+| 행사 일정 | `/news/events` | `/admin?tab=events` | 일정 내림차순 및 오름차순 전환, 분기마다 반복되는 일정 동년 1~4분기 자동 생성, 주보 일정 불러오기 |
 | 팝업 공지 | `/` | `/admin?tab=popups` | 첫 화면 포스터 및 텍스트 팝업 등록, 시작일 및 종료일 자동 만료, `오늘 하루 보지 않기`, 즉시 숨기기 |
 | 일광학사관 등 맞춤 게시판 | `/boards/dormitory` | `/admin?tab=posts&board=custom:dormitory` | 사역 소개, 모집 안내, 입주원서 (`.pdf`, `.hwp`) 첨부 및 교체 |
 | 사진 앨범 | `/news/gallery` | `/admin/photos`, `/admin?tab=gallery` | 아이폰 사진 (`.heic` 자동 변환) 및 동영상 (`.mp4`, `.mov`, 최대 `50 MB`) 업로드, 제목 미입력 시 파일 자동 대기 |

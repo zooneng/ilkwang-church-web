@@ -20,6 +20,13 @@ import { StaffPhotoCropModal } from "@/components/StaffPhotoCropModal";
 import { uploadAssetClient } from "@/lib/client-upload";
 import { isPopupCurrentlyLive } from "@/lib/popup-utils";
 import {
+  buildSameYearQuarterlySlots,
+  describeQuarterlyRule,
+  isLikelyQuarterlyEventTitle,
+  materializeQuarterlyEventItems,
+  type QuarterlyRuleMode,
+} from "@/lib/quarterly-events";
+import {
   CANONICAL_RESOURCE_CATEGORIES,
   createClientSafeId,
   extractYoutubeId,
@@ -510,6 +517,7 @@ export function AdminStudio({
   const [expandedNoticeId, setExpandedNoticeId] = useState<string | null>(null);
 
   const [eventSearch, setEventSearch] = useState("");
+  const [eventSortOrder, setEventSortOrder] = useState<"desc" | "asc">("desc");
   const [eventPage, setEventPage] = useState(1);
   const [eventPageSize, setEventPageSize] = useState(10);
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
@@ -580,6 +588,11 @@ export function AdminStudio({
   const [newEventDescription, setNewEventDescription] = useState("");
   const [newEventAttachUrl, setNewEventAttachUrl] = useState("");
   const [newEventAttachName, setNewEventAttachName] = useState("");
+  const [newEventQuarterly, setNewEventQuarterly] = useState(false);
+  const [newEventQuarterlyMode, setNewEventQuarterlyMode] =
+    useState<QuarterlyRuleMode>("nth-weekday");
+  const [newEventQuarterlyTouched, setNewEventQuarterlyTouched] =
+    useState(false);
 
   // 3) Study & Admin Resources (/admin?tab=resources)
   const [newResourceCategory, setNewResourceCategory] =
@@ -1538,6 +1551,45 @@ export function AdminStudio({
       return;
     }
     const safeDate = newEventDate || getKstDateString();
+
+    if (newEventQuarterly) {
+      const quarterlyItems = materializeQuarterlyEventItems({
+        anchorIsoDate: safeDate,
+        baseTitle: newEventTitle.trim(),
+        timeText: newEventTime.trim() || "오전 11:00",
+        location: newEventLocation.trim() || "일광교회 본당",
+        description: newEventDescription.trim(),
+        attachmentUrl: newEventAttachUrl || undefined,
+        attachmentName: newEventAttachName || undefined,
+        mode: newEventQuarterlyMode,
+        existingEvents: draft.events,
+      });
+
+      if (quarterlyItems.length === 0) {
+        setErrorMessage(
+          "선택한 연도의 1~4분기 동일 일정이 이미 모두 등록되어 있습니다."
+        );
+        return;
+      }
+
+      const nextContent: SiteContent = {
+        ...draft,
+        events: [...quarterlyItems, ...draft.events],
+      };
+      setNewEventTitle("");
+      setNewEventDescription("");
+      setNewEventAttachUrl("");
+      setNewEventAttachName("");
+      setNewEventQuarterly(false);
+      setNewEventQuarterlyTouched(false);
+      setEventPage(1);
+      await handleSave(
+        nextContent,
+        `"${newEventTitle.trim()}" 동년 분기 반복 일정 ${quarterlyItems.length}건이 자동 등록되었습니다.`
+      );
+      return;
+    }
+
     const badges = formatEventBadgesFromIsoDate(safeDate);
     const created: EventItem = {
       id: createClientSafeId("ev"),
@@ -1548,6 +1600,7 @@ export function AdminStudio({
       timeText: newEventTime.trim() || "오전 11:00",
       location: newEventLocation.trim() || "일광교회 본당",
       description: newEventDescription.trim(),
+      recurrence: "none",
       attachmentUrl: newEventAttachUrl || undefined,
       attachmentName: newEventAttachName || undefined,
     };
@@ -1559,8 +1612,46 @@ export function AdminStudio({
     setNewEventDescription("");
     setNewEventAttachUrl("");
     setNewEventAttachName("");
+    setNewEventQuarterly(false);
+    setNewEventQuarterlyTouched(false);
     setEventPage(1);
     await handleSave(nextContent, `"${created.title}" 행사가 등록되었습니다.`);
+  }
+
+  async function handleExpandEventToSameYearQuarters(ev: EventItem) {
+    const evIsoDate = resolveEventIsoDate(ev);
+    const createdSiblings = materializeQuarterlyEventItems({
+      anchorIsoDate: evIsoDate,
+      baseTitle: ev.title,
+      timeText: ev.timeText,
+      location: ev.location,
+      description: ev.description,
+      attachmentUrl: ev.attachmentUrl,
+      attachmentName: ev.attachmentName,
+      mode: "nth-weekday",
+      existingEvents: draft.events,
+    });
+
+    const updatedExisting = draft.events.map((item) =>
+      item.id === ev.id ? { ...item, recurrence: "quarterly" as const } : item
+    );
+
+    if (createdSiblings.length === 0) {
+      await handleSave(
+        { ...draft, events: updatedExisting },
+        `"${ev.title}"의 해당 연도 1~4분기 일정이 이미 모두 등록되어 있습니다.`
+      );
+      return;
+    }
+
+    const nextContent: SiteContent = {
+      ...draft,
+      events: [...createdSiblings, ...updatedExisting],
+    };
+    await handleSave(
+      nextContent,
+      `"${ev.title}"의 같은 해 나머지 분기 일정 ${createdSiblings.length}건이 자동 입력되었습니다.`
+    );
   }
 
   async function handleCreateResource() {
@@ -1911,9 +2002,10 @@ export function AdminStudio({
         resolveEventIsoDate(ev).includes(normalizedEventQ)
       );
     })
-    .sort((a, b) =>
-      resolveEventIsoDate(a).localeCompare(resolveEventIsoDate(b))
-    );
+    .sort((a, b) => {
+      const cmp = resolveEventIsoDate(a).localeCompare(resolveEventIsoDate(b));
+      return eventSortOrder === "desc" ? -cmp : cmp;
+    });
   const safeEventPage = Math.min(
     eventPage,
     Math.max(1, Math.ceil(sortedAdminEvents.length / eventPageSize))
@@ -4066,10 +4158,128 @@ export function AdminStudio({
                   <input
                     type="text"
                     value={newEventTitle}
-                    onChange={(e) => setNewEventTitle(e.target.value)}
-                    placeholder="예: 추수감사주일 감사예배 및 찬양제"
+                    onChange={(e) => {
+                      const nextTitle = e.target.value;
+                      setNewEventTitle(nextTitle);
+                      if (!newEventQuarterlyTouched) {
+                        setNewEventQuarterly(
+                          isLikelyQuarterlyEventTitle(nextTitle)
+                        );
+                      }
+                    }}
+                    placeholder="예: 추수감사주일 감사예배, 정기 제직회"
                     className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm font-bold"
                   />
+                </div>
+
+                {/* Quarterly Same-Year Recurrence Selector */}
+                <div className="rounded-xl bg-white border border-gray-200 p-3.5 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs sm:text-sm font-extrabold text-[#1a2744]">
+                      반복 설정
+                    </span>
+                    <div className="inline-flex flex-wrap rounded-xl bg-[#F4F7F5] p-1 border border-gray-200 gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewEventQuarterly(false);
+                          setNewEventQuarterlyTouched(true);
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                          !newEventQuarterly
+                            ? "bg-[#1a2744] text-white"
+                            : "text-gray-600 hover:text-[#1a2744]"
+                        }`}
+                      >
+                        한 번만 등록
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewEventQuarterly(true);
+                          setNewEventQuarterlyTouched(true);
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-black transition-colors ${
+                          newEventQuarterly
+                            ? "bg-[#2E7D32] text-white"
+                            : "text-gray-700 hover:text-[#1a2744]"
+                        }`}
+                      >
+                        분기마다 반복 (동년 1~4분기 자동 입력)
+                      </button>
+                    </div>
+                  </div>
+
+                  {newEventQuarterly && (
+                    <div className="rounded-xl bg-[#F8FAF8] border border-[#2E7D32]/35 p-3.5 space-y-2.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-xs sm:text-sm font-black text-[#1B5E20]">
+                          {describeQuarterlyRule(
+                            newEventDate || getKstDateString(),
+                            newEventQuarterlyMode
+                          )}
+                        </span>
+                        <div className="inline-flex rounded-lg bg-white p-0.5 border border-gray-200">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setNewEventQuarterlyMode("nth-weekday")
+                            }
+                            className={`px-2.5 py-1 rounded-md text-xs font-bold ${
+                              newEventQuarterlyMode === "nth-weekday"
+                                ? "bg-[#1a2744] text-white"
+                                : "text-gray-600"
+                            }`}
+                          >
+                            같은 주차 및 요일 기준
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setNewEventQuarterlyMode("day-of-month")
+                            }
+                            className={`px-2.5 py-1 rounded-md text-xs font-bold ${
+                              newEventQuarterlyMode === "day-of-month"
+                                ? "bg-[#1a2744] text-white"
+                                : "text-gray-600"
+                            }`}
+                          >
+                            같은 날짜 기준
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {buildSameYearQuarterlySlots({
+                          anchorIsoDate: newEventDate || getKstDateString(),
+                          baseTitle: newEventTitle.trim() || "분기 정기 일정",
+                          mode: newEventQuarterlyMode,
+                          existingEvents: draft.events,
+                        }).map((slot) => (
+                          <div
+                            key={slot.quarter}
+                            className={`rounded-lg border px-3 py-2 text-xs ${
+                              slot.alreadyExists
+                                ? "border-gray-200 bg-gray-100 text-gray-500"
+                                : "border-[#2E7D32]/30 bg-white text-[#1a2744]"
+                            }`}
+                          >
+                            <div className="font-black text-[#2E7D32]">
+                              {slot.quarter}분기{" "}
+                              {slot.alreadyExists && (
+                                <span className="text-gray-500 font-semibold">
+                                  (등록됨)
+                                </span>
+                              )}
+                            </div>
+                            <div className="font-mono font-bold mt-0.5">
+                              {slot.dateIso}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -4132,7 +4342,9 @@ export function AdminStudio({
                     onClick={() => void handleCreateEvent()}
                     className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs sm:text-sm font-black whitespace-nowrap shrink-0 transition-colors disabled:opacity-60"
                   >
-                    + 새 행사 등록하기
+                    {newEventQuarterly
+                      ? "+ 동년 1~4분기 일정 자동 등록하기"
+                      : "+ 새 행사 등록하기"}
                   </button>
                 </div>
               </div>
@@ -4144,6 +4356,40 @@ export function AdminStudio({
                 <h3 className="text-lg font-black text-[#1a2744]">
                   등록된 행사 일정 ({draft.events.length}건)
                 </h3>
+                <div
+                  role="group"
+                  aria-label="등록된 행사 일정 정렬 순서"
+                  className="inline-flex rounded-xl bg-[#F4F7F5] p-1 border border-gray-200"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEventSortOrder("desc");
+                      setEventPage(1);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-black transition-colors whitespace-nowrap ${
+                      eventSortOrder === "desc"
+                        ? "bg-[#1a2744] text-white shadow-2xs"
+                        : "text-gray-600 hover:text-[#1a2744]"
+                    }`}
+                  >
+                    일정 내림차순
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEventSortOrder("asc");
+                      setEventPage(1);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-black transition-colors whitespace-nowrap ${
+                      eventSortOrder === "asc"
+                        ? "bg-[#1a2744] text-white shadow-2xs"
+                        : "text-gray-600 hover:text-[#1a2744]"
+                    }`}
+                  >
+                    일정 오름차순
+                  </button>
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2">
@@ -4188,9 +4434,16 @@ export function AdminStudio({
                               {evIsoDate}
                             </span>
                             <div className="min-w-0">
-                              <p className="text-sm font-bold text-[#1a2744] truncate">
-                                {ev.title}
-                              </p>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <p className="text-sm font-bold text-[#1a2744] truncate">
+                                  {ev.title}
+                                </p>
+                                {ev.recurrence === "quarterly" && (
+                                  <span className="px-2 py-0.5 rounded-full bg-[#E8F5E9] text-[#1B5E20] text-[11px] font-black shrink-0">
+                                    분기 반복
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-xs text-gray-500 truncate">
                                 {[ev.timeText, ev.location]
                                   .filter(Boolean)
@@ -4397,20 +4650,32 @@ export function AdminStudio({
                                 )}
                               </div>
 
-                              <button
-                                type="button"
-                                disabled={saving}
-                                onClick={() => {
-                                  setExpandedEventId(null);
-                                  void handleSave(
-                                    draft,
-                                    `"${ev.title}" 행사 수정사항이 저장되었습니다.`
-                                  );
-                                }}
-                                className="px-4 py-2 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs font-black transition-colors disabled:opacity-60"
-                              >
-                                수정 내용 저장
-                              </button>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <button
+                                  type="button"
+                                  disabled={saving}
+                                  onClick={() =>
+                                    void handleExpandEventToSameYearQuarters(ev)
+                                  }
+                                  className="px-3.5 py-2 rounded-xl border border-[#2E7D32] bg-white hover:bg-[#E8F5E9] text-[#1B5E20] text-xs font-black transition-colors disabled:opacity-60"
+                                >
+                                  동년 1~4분기 자동 채우기
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={saving}
+                                  onClick={() => {
+                                    setExpandedEventId(null);
+                                    void handleSave(
+                                      draft,
+                                      `"${ev.title}" 행사 수정사항이 저장되었습니다.`
+                                    );
+                                  }}
+                                  className="px-4 py-2 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs font-black transition-colors disabled:opacity-60"
+                                >
+                                  수정 내용 저장
+                                </button>
+                              </div>
                             </div>
                           </div>
                         )}

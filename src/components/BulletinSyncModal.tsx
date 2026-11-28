@@ -12,6 +12,10 @@ import {
   formatEventBadgesFromIsoDate,
   getKstDateString,
 } from "@/lib/format-utils";
+import {
+  buildSameYearQuarterlySlots,
+  materializeQuarterlyEventItems,
+} from "@/lib/quarterly-events";
 import type {
   BulletinItem,
   EventItem,
@@ -156,6 +160,19 @@ export function BulletinSyncModal({
   }
 
   const checkedEvents = events.filter((e) => e.checked && e.title.trim() !== "");
+  const plannedEventAdditionsCount = checkedEvents.reduce((sum, ev) => {
+    if (!ev.quarterlyRepeat) return sum + 1;
+    const safeDate = /^\d{4}-\d{2}-\d{2}$/.test(ev.date.trim())
+      ? ev.date.trim()
+      : todayIso;
+    const missingCount = buildSameYearQuarterlySlots({
+      anchorIsoDate: safeDate,
+      baseTitle: ev.title.trim(),
+      mode: "nth-weekday",
+      existingEvents: draft.events,
+    }).filter((s) => !s.alreadyExists).length;
+    return sum + missingCount;
+  }, 0);
   const checkedPopups = popups.filter(
     (p) =>
       p.checked &&
@@ -167,29 +184,49 @@ export function BulletinSyncModal({
     (b) => b.checked && b.text.trim() !== ""
   );
   const totalCheckedCount =
-    checkedEvents.length + checkedPopups.length + checkedBanners.length;
+    plannedEventAdditionsCount + checkedPopups.length + checkedBanners.length;
 
   const totalCandidateCount = events.length + popups.length + banners.length;
 
   async function handleFinalConfirm() {
     if (totalCheckedCount === 0) return;
 
-    const createdEvents: EventItem[] = checkedEvents.map((ev) => {
+    let runningEvents: readonly EventItem[] = draft.events;
+    const createdEvents: EventItem[] = [];
+
+    for (const ev of checkedEvents) {
       const safeDate = /^\d{4}-\d{2}-\d{2}$/.test(ev.date.trim())
         ? ev.date.trim()
         : todayIso;
-      const badges = formatEventBadgesFromIsoDate(safeDate);
-      return {
-        id: createClientSafeId("ev"),
-        date: safeDate,
-        dayBadge: badges.dayBadge,
-        monthYearBadge: badges.monthYearBadge,
-        title: ev.title.trim(),
-        timeText: ev.timeText.trim() || "오전 11:00",
-        location: ev.location.trim() || "일광교회 본당",
-        description: ev.description.trim(),
-      };
-    });
+
+      if (ev.quarterlyRepeat) {
+        const quarterlyCreated = materializeQuarterlyEventItems({
+          anchorIsoDate: safeDate,
+          baseTitle: ev.title.trim(),
+          timeText: ev.timeText.trim() || "오전 11:00",
+          location: ev.location.trim() || "일광교회 본당",
+          description: ev.description.trim(),
+          mode: "nth-weekday",
+          existingEvents: runningEvents,
+        });
+        createdEvents.push(...quarterlyCreated);
+        runningEvents = [...quarterlyCreated, ...runningEvents];
+      } else {
+        const badges = formatEventBadgesFromIsoDate(safeDate);
+        const singleCreated: EventItem = {
+          id: createClientSafeId("ev"),
+          date: safeDate,
+          dayBadge: badges.dayBadge,
+          monthYearBadge: badges.monthYearBadge,
+          title: ev.title.trim(),
+          timeText: ev.timeText.trim() || "오전 11:00",
+          location: ev.location.trim() || "일광교회 본당",
+          description: ev.description.trim(),
+        };
+        createdEvents.push(singleCreated);
+        runningEvents = [singleCreated, ...runningEvents];
+      }
+    }
 
     const createdPopups: PopupItem[] = checkedPopups.map((p) => ({
       id: createClientSafeId("popup"),
@@ -243,8 +280,8 @@ export function BulletinSyncModal({
   }
 
   const summarySegments: string[] = [];
-  if (checkedEvents.length > 0) {
-    summarySegments.push(`행사 일정 ${checkedEvents.length}건`);
+  if (plannedEventAdditionsCount > 0) {
+    summarySegments.push(`행사 일정 ${plannedEventAdditionsCount}건`);
   }
   if (checkedPopups.length > 0) {
     summarySegments.push(`팝업 공지 ${checkedPopups.length}건`);
@@ -489,7 +526,7 @@ export function BulletinSyncModal({
                               />
                             </div>
 
-                            <div className="pl-0 sm:pl-7">
+                            <div className="pl-0 sm:pl-7 space-y-2">
                               <input
                                 type="text"
                                 aria-label="행사 상세 안내"
@@ -509,6 +546,49 @@ export function BulletinSyncModal({
                                 }
                                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs sm:text-sm"
                               />
+
+                              <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                                <label className="inline-flex items-center gap-2 text-xs font-bold text-[#1a2744] cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={ev.quarterlyRepeat}
+                                    onChange={(e) =>
+                                      setEvents((prev) =>
+                                        prev.map((item) =>
+                                          item.key === ev.key
+                                            ? {
+                                                ...item,
+                                                checked: e.target.checked
+                                                  ? true
+                                                  : item.checked,
+                                                quarterlyRepeat:
+                                                  e.target.checked,
+                                              }
+                                            : item
+                                        )
+                                      )
+                                    }
+                                    className="w-4 h-4 rounded border-gray-300 text-[#2E7D32]"
+                                  />
+                                  <span>분기마다 반복 — 동년 1~4분기 자동 입력</span>
+                                </label>
+
+                                {ev.quarterlyRepeat && (
+                                  <span className="text-xs font-bold text-[#2E7D32]">
+                                    {buildSameYearQuarterlySlots({
+                                      anchorIsoDate: ev.date,
+                                      baseTitle: ev.title,
+                                      mode: "nth-weekday",
+                                      existingEvents: draft.events,
+                                    })
+                                      .map(
+                                        (s) =>
+                                          `${s.quarter}분기 ${s.dateIso.slice(5)}${s.alreadyExists ? "(등록됨)" : ""}`
+                                      )
+                                      .join(", ")}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ))}
