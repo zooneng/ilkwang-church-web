@@ -9,6 +9,7 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
     "주일예배 안내 — 1부 오전 9:30, 2부 오전 11:00, 오후예배 오후 1:30",
     "새가족 등록 및 심방 요청은 상단 [문의하기]에서 온라인으로 신청하실 수 있습니다",
   ],
+  popups: [],
   churchInfo: {
     name: "일광교회",
     slogan: "행복과 영원으로 초대하는",

@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 const TOP_LEVEL_ARRAY_KEYS = [
   "navigation",
   "topBannerNotices",
+  "popups",
   "history",
   "staff",
   "worshipSchedule",

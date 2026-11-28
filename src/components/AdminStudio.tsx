@@ -10,12 +10,14 @@ import {
 import { AdminBulletinStudio } from "@/components/AdminBulletinStudio";
 import { AdminMenusAndBoardsStudio } from "@/components/AdminMenusAndBoardsStudio";
 import { AdminPaginationBar } from "@/components/AdminPaginationBar";
+import { AdminPopupStudio } from "@/components/AdminPopupStudio";
 import {
   AdminSmartAssistant,
   type AssistantJumpTarget,
 } from "@/components/AdminSmartAssistant";
 import { StaffPhotoCropModal } from "@/components/StaffPhotoCropModal";
 import { uploadAssetClient } from "@/lib/client-upload";
+import { isPopupCurrentlyLive } from "@/lib/popup-utils";
 import {
   CANONICAL_RESOURCE_CATEGORIES,
   createClientSafeId,
@@ -68,6 +70,7 @@ type AdminTabKey =
   | "bulletin"
   | "sermons"
   | "inquiries"
+  | "popups"
   | "notices"
   | "events"
   | "gallery"
@@ -155,6 +158,11 @@ const TAB_PLAIN_GUIDES: Record<
     summary:
       "홈페이지로 접수된 새가족 등록 신청과 심방, 문의 내역을 확인하고 처리 메모를 남깁니다.",
     publicHref: "/contact",
+  },
+  popups: {
+    summary:
+      "홈페이지 첫 화면에 띄울 포스터나 안내 팝업창을 등록하고 노출 기간을 설정합니다.",
+    publicHref: "/",
   },
   notices: {
     summary: "성도님들께 알릴 교회 공지사항과 첨부 문서를 작성하고 수정합니다.",
@@ -250,6 +258,7 @@ function resolveInitialTab(
     "bulletin",
     "sermons",
     "inquiries",
+    "popups",
     "notices",
     "events",
     "gallery",
@@ -853,6 +862,7 @@ export function AdminStudio({
         const compareKeys = [
           "navigation",
           "topBannerNotices",
+          "popups",
           "churchInfo",
           "pastorProfile",
           "history",
@@ -1765,6 +1775,7 @@ export function AdminStudio({
       const arrayKeys = [
         "navigation",
         "topBannerNotices",
+        "popups",
         "history",
         "staff",
         "worshipSchedule",
@@ -1979,6 +1990,11 @@ export function AdminStudio({
     safeLegacyPage * LEGACY_ADMIN_PER_PAGE
   );
 
+  const todayKstIso = getKstDateString();
+  const livePopupsCount = draft.popups.filter((item) =>
+    isPopupCurrentlyLive(item, todayKstIso)
+  ).length;
+
   const adminGroups: readonly AdminGroupDef[] = [
     {
       key: "weekly",
@@ -2012,6 +2028,14 @@ export function AdminStudio({
       key: "boards",
       title: "소식 및 게시판",
       items: [
+        {
+          key: "popups",
+          label: "팝업 공지",
+          countLabel:
+            livePopupsCount > 0
+              ? `노출 ${livePopupsCount}건`
+              : `${draft.popups.length}건`,
+        },
         {
           key: "notices",
           label: "공지사항",
@@ -2513,7 +2537,26 @@ export function AdminStudio({
                   <h2 className="text-base sm:text-lg font-black text-[#1a2744] px-1">
                     소식 및 게시판
                   </h2>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => selectAdminTab("popups")}
+                      className="bg-white hover:bg-[#F8FAF8] rounded-2xl border border-gray-200 hover:border-[#2E7D32] px-4 py-4 text-left shadow-2xs transition-all flex items-center justify-between gap-2"
+                    >
+                      <span className="text-base sm:text-lg font-black text-[#1a2744]">
+                        팝업 공지
+                      </span>
+                      {livePopupsCount > 0 ? (
+                        <span className="px-2.5 py-0.5 rounded-full bg-[#E8F5E9] text-[#1B5E20] text-xs font-black shrink-0">
+                          노출 {livePopupsCount}건
+                        </span>
+                      ) : (
+                        <span className="text-xs font-bold text-gray-400 shrink-0">
+                          {draft.popups.length}건
+                        </span>
+                      )}
+                    </button>
+
                     {[
                       {
                         tab: "notices" as const,
@@ -4342,6 +4385,30 @@ export function AdminStudio({
               />
             </div>
           </div>
+        )}
+
+        {/* =========================================================
+            POPUPS: HOMEPAGE POSTER & ANNOUNCEMENT POPUP STUDIO
+           ========================================================= */}
+        {activeTab === "popups" && (
+          <AdminPopupStudio
+            draft={draft}
+            saving={saving}
+            onUpdatePopups={(nextPopups) =>
+              updateDraft((prev) => ({
+                ...prev,
+                popups: nextPopups,
+              }))
+            }
+            onSaveImmediate={async (nextContent, toastText) => {
+              await handleSave(nextContent, toastText);
+            }}
+            onUploadImage={(file, label) => uploadAsset(file, "notices", label)}
+            onError={(msg) => {
+              setToastMessage(null);
+              setErrorMessage(msg);
+            }}
+          />
         )}
 
         {/* =========================================================

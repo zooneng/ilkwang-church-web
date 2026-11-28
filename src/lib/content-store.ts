@@ -105,6 +105,9 @@ function normalizeSiteContent(parsed: Partial<SiteContent>): SiteContent {
     topBannerNotices: Array.isArray(parsed.topBannerNotices)
       ? parsed.topBannerNotices
       : DEFAULT_SITE_CONTENT.topBannerNotices,
+    popups: Array.isArray(parsed.popups)
+      ? parsed.popups
+      : DEFAULT_SITE_CONTENT.popups,
     churchInfo: {
       ...DEFAULT_SITE_CONTENT.churchInfo,
       ...(parsed.churchInfo ?? {}),

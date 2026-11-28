@@ -10,6 +10,7 @@ export type AssistantJumpTarget =
   | "bulletin"
   | "sermons"
   | "inquiries"
+  | "popups"
   | "notices"
   | "events"
   | "gallery"
@@ -219,6 +220,30 @@ const BUILTIN_KNOWLEDGE_BASE: readonly KnowledgeEntry[] = [
     targetTab: "staff",
     targetLabel: "섬기는 사람들 열기",
     publicHref: "/about/pastor",
+  },
+  {
+    id: "kb-popups",
+    question: "홈페이지 첫 화면에 부흥회 포스터나 안내 팝업창은 어떻게 띄우나요?",
+    keywords: [
+      "팝업",
+      "팝업창",
+      "포스터",
+      "공지창",
+      "안내창",
+      "이벤트창",
+      "오늘 하루",
+      "배너창",
+    ],
+    summary:
+      "[팝업 공지] 메뉴에서 포스터 사진이나 안내 문구를 올리고 노출 종료일을 지정하면 첫 화면에 팝업이 표시됩니다.",
+    steps: [
+      "[팝업 공지] 메뉴를 열고 포스터 사진을 선택하거나 제목과 안내 문구를 입력합니다.",
+      "[이번 주일까지] 등 노출 기간을 고르고 [팝업 등록하기]를 누르면 즉시 첫 화면에 뜹니다.",
+      "종료일이 지나면 자동으로 내려가며 [숨기기] 버튼으로 언제든 바로 끌 수 있습니다.",
+    ],
+    targetTab: "popups",
+    targetLabel: "팝업 공지 열기",
+    publicHref: "/",
   },
   {
     id: "kb-cube",

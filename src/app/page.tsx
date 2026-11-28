@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { AdminEditLink } from "@/components/AdminEditLink";
 import { HeroPhotoCube } from "@/components/HeroPhotoCube";
+import { HomePopupModal } from "@/components/HomePopupModal";
 import { getSiteContent } from "@/lib/content-store";
 import { getKstDateString, resolveEventIsoDate } from "@/lib/format-utils";
+import { isPopupCurrentlyLive } from "@/lib/popup-utils";
 import {
   normalizeScriptureText,
   normalizeSermonServiceType,
@@ -106,9 +108,16 @@ export default async function HomePage() {
   const featuredEvents = (
     quarterEvents.length > 0 ? quarterEvents : sortedEvents.slice(0, 4)
   ).slice(0, 4);
+  const livePopups = content.popups.filter((item) =>
+    isPopupCurrentlyLive(item, todayIso)
+  );
 
   return (
     <div>
+      {livePopups.length > 0 && (
+        <HomePopupModal popups={livePopups} todayIso={todayIso} />
+      )}
+
       {/* 1. Main Hero with Preserved Sanctuary Photo & Dynamic 3D Rotating Church Cube */}
       <section className="relative min-h-[560px] sm:min-h-[700px] lg:min-h-[800px] flex items-center justify-center overflow-hidden">
         <img
@@ -117,12 +126,20 @@ export default async function HomePage() {
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-[#1a2744]/85" />
-        <AdminEditLink
-          href="/admin?tab=hero-cube"
-          className="absolute top-28 right-5 z-30 px-4 py-2 rounded-full bg-white/95 text-[#1a2744] hover:bg-[#2E7D32] hover:text-white text-xs sm:text-sm font-black shadow-lg transition-colors"
-        >
-          ✎ 배경 및 대표 사진 변경
-        </AdminEditLink>
+        <div className="absolute top-28 right-5 z-30 flex flex-wrap items-center gap-2">
+          <AdminEditLink
+            href="/admin?tab=popups"
+            className="px-4 py-2 rounded-full bg-white/95 text-[#1a2744] hover:bg-[#2E7D32] hover:text-white text-xs sm:text-sm font-black shadow-lg transition-colors"
+          >
+            팝업 관리
+          </AdminEditLink>
+          <AdminEditLink
+            href="/admin?tab=hero-cube"
+            className="px-4 py-2 rounded-full bg-white/95 text-[#1a2744] hover:bg-[#2E7D32] hover:text-white text-xs sm:text-sm font-black shadow-lg transition-colors"
+          >
+            배경 및 대표 사진 변경
+          </AdminEditLink>
+        </div>
 
         <div className="relative z-10 max-w-[1400px] mx-auto px-5 sm:px-6 pt-20 pb-28 sm:pt-24 sm:pb-32 lg:py-16 w-full flex flex-col lg:flex-row items-center justify-center lg:gap-12 min-h-[560px] sm:min-h-[700px] lg:min-h-[800px]">
           <div className="max-w-2xl w-full text-center lg:text-left lg:pl-[50px]">

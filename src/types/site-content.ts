@@ -345,10 +345,23 @@ export interface ManagedBoardSummary {
   readonly posts: readonly ManagedBoardPost[];
 }
 
+export interface PopupItem {
+  readonly id: string;
+  readonly title: string;
+  readonly content: string;
+  readonly imageUrl?: string;
+  readonly linkUrl?: string;
+  readonly linkLabel?: string;
+  readonly startDate?: string;
+  readonly endDate?: string;
+  readonly isActive: boolean;
+}
+
 export interface SiteContent {
   readonly updatedAt: string;
   readonly navigation: readonly NavCategoryConfig[];
   readonly topBannerNotices: readonly string[];
+  readonly popups: readonly PopupItem[];
   readonly churchInfo: ChurchInfo;
   readonly pastorProfile: PastorProfile;
   readonly history: readonly HistoryItem[];
