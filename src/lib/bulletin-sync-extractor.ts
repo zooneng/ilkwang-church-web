@@ -1,7 +1,9 @@
 import {
-  resolveEventIsoDate,
-  splitBulletinNewsAndSchedule,
-} from "@/lib/format-utils";
+  areChurchEventTitlesEquivalent,
+  canonicalizeChurchEventTitle,
+  findMatchingRegisteredEvent,
+} from "@/lib/event-dedup";
+import { splitBulletinNewsAndSchedule } from "@/lib/format-utils";
 import { addDaysToIsoDate } from "@/lib/popup-utils";
 import { isLikelyQuarterlyEventTitle } from "@/lib/quarterly-events";
 import type {
@@ -16,6 +18,7 @@ export interface ProposedBulletinEvent {
   readonly checked: boolean;
   readonly quarterlyRepeat: boolean;
   readonly alreadyExists: boolean;
+  readonly matchedExistingTitle?: string;
   readonly isPast: boolean;
   readonly date: string;
   readonly title: string;
@@ -72,6 +75,7 @@ interface RawNewsEntry {
   readonly timeText?: string;
   readonly location?: string;
   readonly speakerLabel?: string;
+  readonly canStandAloneAsEvent: boolean;
   readonly summaryDetail: string;
   readonly sourceText: string;
 }
@@ -147,14 +151,14 @@ function normalizeCompareToken(raw: string): string {
 }
 
 function titlesOverlap(a: string, b: string): boolean {
-  const na = normalizeCompareToken(a);
-  const nb = normalizeCompareToken(b);
-  if (!na || !nb) return false;
-  if (na === nb) return true;
-  if (na.length >= 3 && nb.includes(na)) return true;
-  if (nb.length >= 3 && na.includes(nb)) return true;
-  return false;
+  return areChurchEventTitlesEquivalent(a, b, true);
 }
+
+const STANDALONE_SPECIAL_EVENT_NEWS_RE =
+  /(?:말씀축제|사경회|부흥회|초청예배|초청주일|특별새벽|특새|수련회|성경학교|찬양대회|찬양제|퀴즈대회|발표회|제직회|공동의회|성탄축하|송구영신|성례주일|성찬식|연합예배)/u;
+
+const NON_EVENT_ROUTINE_TOPIC_RE =
+  /^(?:예배|오전예배|오후예배|낮예배|설교|기도|교제|담임목사|교역자|안내|광고|봉사|섬김|헌금)$/u;
 
 const STANDING_ROUTINE_SCHEDULE_RE =
   /^(?:주일오전예배|주일오후예배|주일예배|수요기도회|수요예배|금요기도회|새벽기도회?)(?:\s*[:：]|$)/u;
@@ -224,9 +228,9 @@ function parseScheduleEntries(
       continue;
     }
 
-    // Pattern 1: "11월 29일: 선교 특강" or "1월 23일(금) ~ 24일(토): 유초등부 겨울수련회"
+    // Pattern 1: "11월 29일: 선교 특강" or "1월 23-24, 30-31일: 유초등, 중고등부 수련회"
     const korMatch =
-      /^(\d{1,2})\s*월\s*(\d{1,2})\s*일?(?:\s*\([^)]{1,4}\))?(?:\s*[~–-]\s*((?:\d{1,2}\s*월\s*)?\d{1,2}\s*일?(?:\s*\([^)]{1,4}\))?))?(?:\s*[:：-]\s*|\s+)(.+)$/u.exec(
+      /^(\d{1,2})\s*월\s*(\d{1,2})\s*일?(?:\s*\([^)]{1,4}\))?(?:\s*[~–-]\s*((?:\d{1,2}\s*월\s*)?\d{1,2}\s*일?(?:\s*\([^)]{1,4}\))?(?:\s*,\s*[^:：]{1,20})?))?(?:\s*[:：]\s*|\s+-\s+|\s+)(.+)$/u.exec(
         stripped
       );
     if (korMatch) {
@@ -446,6 +450,11 @@ function parseNewsEntries(
       .replace(/\s+/g, " ")
       .trim();
 
+    const compactOriginalTopic = topic.replace(/\s+/g, "");
+    const canStandAloneAsEvent =
+      !NON_EVENT_ROUTINE_TOPIC_RE.test(compactOriginalTopic) &&
+      STANDALONE_SPECIAL_EVENT_NEWS_RE.test(`${topic} ${body}`);
+
     results.push({
       date: dateIso,
       topic: cleanTopic,
@@ -453,6 +462,7 @@ function parseNewsEntries(
       timeText,
       location,
       speakerLabel,
+      canStandAloneAsEvent,
       summaryDetail: speakerLabel ? `강사: ${speakerLabel}` : cleanedBody,
       sourceText: item,
     });
@@ -519,6 +529,7 @@ function mergeScheduleAndNews(
 
   newsEntries.forEach((news, idx) => {
     if (consumedNewsIndexes.has(idx)) return;
+    if (!news.canStandAloneAsEvent) return;
     merged.push({
       date: news.date,
       title: news.topic,
@@ -536,24 +547,15 @@ function mergeScheduleAndNews(
   return merged.sort((a, b) => a.date.localeCompare(b.date));
 }
 
-function isEventAlreadyRegistered(
-  cand: MergedCandidate,
-  existingEvents: readonly EventItem[]
-): boolean {
-  return existingEvents.some((ev) => {
-    const evDate = resolveEventIsoDate(ev);
-    if (evDate !== cand.date) return false;
-    return titlesOverlap(ev.title, cand.title);
-  });
-}
-
 function isPopupAlreadyRegistered(
   popupTitle: string,
   candTitle: string,
   existingPopups: readonly PopupItem[]
 ): boolean {
   return existingPopups.some(
-    (p) => titlesOverlap(p.title, popupTitle) || titlesOverlap(p.title, candTitle)
+    (p) =>
+      areChurchEventTitlesEquivalent(p.title, popupTitle, true) ||
+      areChurchEventTitlesEquivalent(p.title, candTitle, true)
   );
 }
 
@@ -563,12 +565,13 @@ function isBannerAlreadyRegistered(
   existingBanners: readonly string[]
 ): boolean {
   const normText = normalizeCompareToken(bannerText);
-  const normTitle = normalizeCompareToken(candTitle);
+  const canonTitle = canonicalizeChurchEventTitle(candTitle);
   return existingBanners.some((line) => {
     const normExisting = normalizeCompareToken(line);
     if (!normExisting) return false;
     if (normExisting === normText) return true;
-    return normTitle.length >= 4 && normExisting.includes(normTitle);
+    const canonExisting = canonicalizeChurchEventTitle(line);
+    return canonTitle.length >= 3 && canonExisting.includes(canonTitle);
   });
 }
 
@@ -594,7 +597,12 @@ export function extractBulletinSyncPlan(
 
   // 1. Proposed Events
   const events: ProposedBulletinEvent[] = merged.map((cand, idx) => {
-    const alreadyExists = isEventAlreadyRegistered(cand, existingContent.events);
+    const matchedExisting = findMatchingRegisteredEvent(
+      existingContent.events,
+      cand.date,
+      cand.title
+    );
+    const alreadyExists = Boolean(matchedExisting);
     const isPast = cand.date < todayIso;
     const checked = !alreadyExists && !isPast && !cand.isSecularNote;
     return {
@@ -602,6 +610,7 @@ export function extractBulletinSyncPlan(
       checked,
       quarterlyRepeat: isLikelyQuarterlyEventTitle(cand.title),
       alreadyExists,
+      matchedExistingTitle: matchedExisting?.title,
       isPast,
       date: cand.date,
       title: cand.title,

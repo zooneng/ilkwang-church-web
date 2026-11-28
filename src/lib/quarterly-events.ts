@@ -1,3 +1,4 @@
+import { areChurchEventTitlesEquivalent } from "@/lib/event-dedup";
 import {
   createClientSafeId,
   formatEventBadgesFromIsoDate,
@@ -76,14 +77,6 @@ export function resolveQuarterlyTitle(
   return trimmed;
 }
 
-function normalizeEventTitleKey(raw: string): string {
-  return raw
-    .toLowerCase()
-    .replace(/(?:제\s*)?[1-4]\s*분기/gu, "분기")
-    .replace(/\([^)]*\)/g, "")
-    .replace(/[^가-힣a-z0-9]/gu, "");
-}
-
 function isSameQuarterlyEventOnMonth(
   existingEvents: readonly EventItem[],
   year: number,
@@ -91,19 +84,18 @@ function isSameQuarterlyEventOnMonth(
   candidateDateIso: string,
   candidateTitle: string
 ): boolean {
-  const normCand = normalizeEventTitleKey(candidateTitle);
   const yearMonthPrefix = `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-`;
 
   return existingEvents.some((ev) => {
     const evIso = resolveEventIsoDate(ev);
-    const normExisting = normalizeEventTitleKey(ev.title);
-    if (!normCand || !normExisting) return false;
-    const sameTitle =
-      normCand === normExisting ||
-      (normCand.length >= 3 && normExisting.includes(normCand)) ||
-      (normExisting.length >= 3 && normCand.includes(normExisting));
-    if (!sameTitle) return false;
-    return evIso === candidateDateIso || evIso.startsWith(yearMonthPrefix);
+    if (evIso !== candidateDateIso && !evIso.startsWith(yearMonthPrefix)) {
+      return false;
+    }
+    return areChurchEventTitlesEquivalent(
+      ev.title,
+      candidateTitle,
+      evIso === candidateDateIso
+    );
   });
 }
 

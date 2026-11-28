@@ -7,6 +7,7 @@ import {
   type ProposedBulletinEvent,
   type ProposedBulletinPopup,
 } from "@/lib/bulletin-sync-extractor";
+import { findMatchingRegisteredEvent } from "@/lib/event-dedup";
 import {
   createClientSafeId,
   formatEventBadgesFromIsoDate,
@@ -159,12 +160,28 @@ export function BulletinSyncModal({
     setBanners(nextPlan.banners);
   }
 
-  const checkedEvents = events.filter((e) => e.checked && e.title.trim() !== "");
+  const unregisteredEvents = events.filter((e) => !e.alreadyExists);
+  const skippedRegisteredEvents = events.filter((e) => e.alreadyExists);
+  const unregisteredPopups = popups.filter((p) => !p.alreadyExists);
+  const skippedRegisteredPopups = popups.filter((p) => p.alreadyExists);
+  const unregisteredBanners = banners.filter((b) => !b.alreadyExists);
+
+  const checkedEvents = unregisteredEvents.filter(
+    (e) => e.checked && e.title.trim() !== ""
+  );
   const plannedEventAdditionsCount = checkedEvents.reduce((sum, ev) => {
-    if (!ev.quarterlyRepeat) return sum + 1;
     const safeDate = /^\d{4}-\d{2}-\d{2}$/.test(ev.date.trim())
       ? ev.date.trim()
       : todayIso;
+    if (!ev.quarterlyRepeat) {
+      return findMatchingRegisteredEvent(
+        draft.events,
+        safeDate,
+        ev.title.trim()
+      )
+        ? sum
+        : sum + 1;
+    }
     const missingCount = buildSameYearQuarterlySlots({
       anchorIsoDate: safeDate,
       baseTitle: ev.title.trim(),
@@ -173,19 +190,23 @@ export function BulletinSyncModal({
     }).filter((s) => !s.alreadyExists).length;
     return sum + missingCount;
   }, 0);
-  const checkedPopups = popups.filter(
+  const checkedPopups = unregisteredPopups.filter(
     (p) =>
       p.checked &&
       (p.title.trim() !== "" ||
         p.content.trim() !== "" ||
         Boolean(p.imageUrl?.trim()))
   );
-  const checkedBanners = banners.filter(
+  const checkedBanners = unregisteredBanners.filter(
     (b) => b.checked && b.text.trim() !== ""
   );
   const totalCheckedCount =
     plannedEventAdditionsCount + checkedPopups.length + checkedBanners.length;
 
+  const totalUnregisteredCount =
+    unregisteredEvents.length +
+    unregisteredPopups.length +
+    unregisteredBanners.length;
   const totalCandidateCount = events.length + popups.length + banners.length;
 
   async function handleFinalConfirm() {
@@ -212,6 +233,15 @@ export function BulletinSyncModal({
         createdEvents.push(...quarterlyCreated);
         runningEvents = [...quarterlyCreated, ...runningEvents];
       } else {
+        if (
+          findMatchingRegisteredEvent(
+            runningEvents,
+            safeDate,
+            ev.title.trim()
+          )
+        ) {
+          continue;
+        }
         const badges = formatEventBadgesFromIsoDate(safeDate);
         const singleCreated: EventItem = {
           id: createClientSafeId("ev"),
@@ -371,6 +401,23 @@ export function BulletinSyncModal({
                     위에서 다른 날짜의 주보를 선택해 확인하실 수 있습니다.
                   </p>
                 </div>
+              ) : totalUnregisteredCount === 0 ? (
+                <div className="rounded-2xl bg-white border border-gray-200 p-8 text-center space-y-2">
+                  <p className="text-base sm:text-lg font-black text-[#1B5E20]">
+                    이 주보의 행사 일정과 팝업 공지가 이미 모두 등록되어 있습니다.
+                  </p>
+                  {skippedRegisteredEvents.length > 0 && (
+                    <p className="text-xs sm:text-sm text-gray-600">
+                      등록 완료 일정:{" "}
+                      {skippedRegisteredEvents
+                        .map(
+                          (ev) =>
+                            `${ev.date} ${ev.matchedExistingTitle ?? ev.title}`
+                        )
+                        .join(", ")}
+                    </p>
+                  )}
+                </div>
               ) : (
                 <div className="space-y-6">
                   {/* SECTION 1: EVENTS */}
@@ -381,10 +428,10 @@ export function BulletinSyncModal({
                           1. 행사 일정 추가
                         </h3>
                         <span className="px-2.5 py-0.5 rounded-full bg-[#E8F5E9] text-[#1B5E20] text-xs font-black">
-                          선택 {checkedEvents.length}건
+                          선택 {plannedEventAdditionsCount}건
                         </span>
                       </div>
-                      {events.length > 0 && (
+                      {unregisteredEvents.length > 0 && (
                         <div className="flex items-center gap-1.5">
                           <button
                             type="button"
@@ -398,7 +445,7 @@ export function BulletinSyncModal({
                             }
                             className="px-2.5 py-1 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-xs font-bold text-gray-700"
                           >
-                            미등록 전체 선택
+                            전체 선택
                           </button>
                           <button
                             type="button"
@@ -415,13 +462,13 @@ export function BulletinSyncModal({
                       )}
                     </div>
 
-                    {events.length === 0 ? (
-                      <p className="text-sm text-gray-500 py-2">
-                        추출된 행사 일정이 없습니다.
+                    {unregisteredEvents.length === 0 ? (
+                      <p className="text-sm font-semibold text-gray-600 py-1">
+                        새로 추가할 행사 일정이 없습니다. (주보 속 일정은 모두 이미 등록되어 제외되었습니다.)
                       </p>
                     ) : (
                       <div className="space-y-2.5">
-                        {events.map((ev) => (
+                        {unregisteredEvents.map((ev) => (
                           <div
                             key={ev.key}
                             className={`rounded-xl border p-3.5 space-y-2.5 transition-colors ${
@@ -594,6 +641,22 @@ export function BulletinSyncModal({
                         ))}
                       </div>
                     )}
+
+                    {skippedRegisteredEvents.length > 0 && (
+                      <div className="rounded-xl bg-gray-50 border border-gray-200 px-3.5 py-2.5 text-xs text-gray-600">
+                        <span className="font-extrabold text-gray-700">
+                          이미 등록되어 제외됨 ({skippedRegisteredEvents.length}건):{" "}
+                        </span>
+                        <span>
+                          {skippedRegisteredEvents
+                            .map(
+                              (ev) =>
+                                `${ev.date} ${ev.matchedExistingTitle ?? ev.title}`
+                            )
+                            .join(", ")}
+                        </span>
+                      </div>
+                    )}
                   </section>
 
                   {/* SECTION 2: POPUPS */}
@@ -607,7 +670,7 @@ export function BulletinSyncModal({
                           선택 {checkedPopups.length}건
                         </span>
                       </div>
-                      {popups.length > 0 && (
+                      {unregisteredPopups.length > 0 && (
                         <button
                           type="button"
                           onClick={() =>
@@ -622,13 +685,13 @@ export function BulletinSyncModal({
                       )}
                     </div>
 
-                    {popups.length === 0 ? (
-                      <p className="text-sm text-gray-500 py-2">
-                        추출된 팝업 후보가 없습니다.
+                    {unregisteredPopups.length === 0 ? (
+                      <p className="text-sm font-semibold text-gray-600 py-1">
+                        새로 추가할 팝업 공지가 없습니다.
                       </p>
                     ) : (
                       <div className="space-y-2.5">
-                        {popups.map((p) => (
+                        {unregisteredPopups.map((p) => (
                           <div
                             key={p.key}
                             className={`rounded-xl border p-3.5 space-y-2.5 transition-colors ${
@@ -805,10 +868,23 @@ export function BulletinSyncModal({
                         ))}
                       </div>
                     )}
+
+                    {skippedRegisteredPopups.length > 0 && (
+                      <div className="rounded-xl bg-gray-50 border border-gray-200 px-3.5 py-2.5 text-xs text-gray-600">
+                        <span className="font-extrabold text-gray-700">
+                          이미 등록된 팝업 제외 ({skippedRegisteredPopups.length}건):{" "}
+                        </span>
+                        <span>
+                          {skippedRegisteredPopups
+                            .map((p) => p.title)
+                            .join(", ")}
+                        </span>
+                      </div>
+                    )}
                   </section>
 
                   {/* SECTION 3: TOP BANNER NOTICES */}
-                  {banners.length > 0 && (
+                  {unregisteredBanners.length > 0 && (
                     <section className="rounded-2xl bg-white border border-gray-200 p-4 sm:p-5 space-y-3.5 shadow-2xs">
                       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
                         <div className="flex items-center gap-2.5">
@@ -833,7 +909,7 @@ export function BulletinSyncModal({
                       </div>
 
                       <div className="space-y-2">
-                        {banners.map((b) => (
+                        {unregisteredBanners.map((b) => (
                           <div
                             key={b.key}
                             className={`rounded-xl border p-3 flex flex-col sm:flex-row sm:items-center gap-2.5 transition-colors ${

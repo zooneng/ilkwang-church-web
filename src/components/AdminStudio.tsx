@@ -18,6 +18,7 @@ import {
 import { BulletinSyncModal } from "@/components/BulletinSyncModal";
 import { StaffPhotoCropModal } from "@/components/StaffPhotoCropModal";
 import { uploadAssetClient } from "@/lib/client-upload";
+import { findMatchingRegisteredEvent } from "@/lib/event-dedup";
 import { isPopupCurrentlyLive } from "@/lib/popup-utils";
 import {
   buildSameYearQuarterlySlots,
@@ -1586,6 +1587,18 @@ export function AdminStudio({
       await handleSave(
         nextContent,
         `"${newEventTitle.trim()}" 동년 분기 반복 일정 ${quarterlyItems.length}건이 자동 등록되었습니다.`
+      );
+      return;
+    }
+
+    const duplicateSingle = findMatchingRegisteredEvent(
+      draft.events,
+      safeDate,
+      newEventTitle.trim()
+    );
+    if (duplicateSingle) {
+      setErrorMessage(
+        `이미 ${safeDate}에 "${duplicateSingle.title}" 일정이 등록되어 있습니다.`
       );
       return;
     }
