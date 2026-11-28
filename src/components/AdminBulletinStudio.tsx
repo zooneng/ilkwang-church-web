@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AdminPaginationBar } from "@/components/AdminPaginationBar";
+import { extractBulletinSyncPlan } from "@/lib/bulletin-sync-extractor";
 import {
   applyAllBulletinFixes,
   applyBulletinIssueFix,
@@ -47,6 +48,11 @@ interface AdminBulletinStudioProps {
   } | null>;
   readonly onToast: (msg: string) => void;
   readonly onError: (msg: string) => void;
+  readonly onOpenBulletinSync?: (options?: {
+    readonly bulletinId?: string;
+    readonly overrideBulletin?: BulletinItem;
+    readonly autoPromptNotice?: string;
+  }) => void;
 }
 
 const SUPPORTED_BULLETIN_EXTS = [".hwp", ".hwpx", ".docx", ".txt"] as const;
@@ -200,6 +206,7 @@ export function AdminBulletinStudio({
   onUploadAsset,
   onToast,
   onError,
+  onOpenBulletinSync,
 }: AdminBulletinStudioProps) {
   const bulletins = draft.bulletins;
 
@@ -603,6 +610,25 @@ export function AdminBulletinStudio({
     setParsedSourceName(null);
     setComposerOpen(false);
     setPage(1);
+
+    if (onOpenBulletinSync) {
+      const syncPlan = extractBulletinSyncPlan(
+        created,
+        nextContent,
+        getKstDateString()
+      );
+      const hasSuggestedAdditions =
+        syncPlan.events.some((ev) => ev.checked) ||
+        syncPlan.popups.some((p) => p.checked) ||
+        syncPlan.banners.some((b) => b.checked);
+      if (hasSuggestedAdditions) {
+        onOpenBulletinSync({
+          overrideBulletin: created,
+          autoPromptNotice:
+            "방금 게시한 주보에서 찾은 행사 일정과 팝업 공지입니다. 내용을 확인하시고 맨 아래 [최종 확인 후 추가하기]를 누르면 반영됩니다.",
+        });
+      }
+    }
   }
 
   async function handleExtractHangulIntoExistingRow(
@@ -747,6 +773,15 @@ export function AdminBulletinStudio({
           주보 올리기 ({bulletins.length}호)
         </h2>
         <div className="flex flex-wrap items-center gap-2">
+          {onOpenBulletinSync && bulletins.length > 0 && (
+            <button
+              type="button"
+              onClick={() => onOpenBulletinSync()}
+              className="px-4 py-2 rounded-full bg-[#1a2744] hover:bg-[#2E7D32] text-white text-xs sm:text-sm font-black transition-colors whitespace-nowrap shrink-0"
+            >
+              주보로 일정 및 팝업 추가
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setComposerOpen((prev) => !prev)}
@@ -1376,6 +1411,17 @@ export function AdminBulletinStudio({
                         <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-[11px] font-semibold">
                           첨부
                         </span>
+                      )}
+                      {onOpenBulletinSync && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onOpenBulletinSync({ bulletinId: bul.id })
+                          }
+                          className="px-3 py-1.5 rounded-lg bg-[#E8F5E9] hover:bg-[#2E7D32] text-[#1B5E20] hover:text-white text-xs font-black transition-colors"
+                        >
+                          일정 및 팝업 추출
+                        </button>
                       )}
                       <button
                         type="button"

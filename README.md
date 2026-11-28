@@ -1,9 +1,9 @@
 # Ilkwang Church Official Website and AI Reference Kit — ilkwang-church-web
 
 > **Created**: 2026-11-12 20:30 KST  
-> **Last updated**: 2026-11-28 08:40 KST  
+> **Last updated**: 2026-11-28 21:20 KST  
 > **Modified by**: Gemini 4 Carbon (High), Antigravity  
-> **Version**: 3.1.0  
+> **Version**: 3.2.0  
 
 Open reference repository of the official website for **Ilkwang Church** (`일광교회`, https://ilkwang.org), shared together with our full build chronicle so fellow pastors and church workers can point AI coding agents (`Claude Code`, `Cursor`, `Antigravity`, `Codex`) at a verified, zero-subscription Korean church web platform.
 
@@ -13,10 +13,10 @@ Many small and midsize churches either pay recurring monthly builder fees or str
 
 ## 2. Core Ministry Features
 
-- **Native Korean `.hwp` and `.hwpx` Bulletin Parser and Pre-Publish Proofreader** (`src/lib/hwp-parser.ts`, `src/lib/bulletin-typo-checker.ts`, `/admin?tab=bulletin`): Extracts worship liturgy, scripture, preacher, separated `교회 소식` and `교회 일정` boxes, and congregation celebrations directly from Hancom files, then opens a pre-publish check screen that highlights duplicate dates/volumes and common Korean typos in yellow with 1-click auto-fix before posting.
+- **Native Korean `.hwp` and `.hwpx` Bulletin Parser, Proofreader, and 1-Click Event and Popup Sync** (`src/lib/hwp-parser.ts`, `src/lib/bulletin-typo-checker.ts`, `src/lib/bulletin-sync-extractor.ts`, `src/components/BulletinSyncModal.tsx`, `/admin?tab=bulletin`): Extracts worship liturgy, scripture, preacher, separated `교회 소식` and `교회 일정` boxes, and congregation celebrations directly from Hancom files, highlights duplicate dates or volumes and common Korean typos before posting, and previews matching church events, homepage popups, and top-banner notices for 1-click confirmation (`최종 확인 후 추가하기`).
 - **1-Click YouTube Sermon Sync** (`src/app/api/youtube-sync/route.ts`, `/admin?tab=sermons`): Pulls new sermons from a church YouTube `@handle` without an API key and classifies Korean worship service categories automatically.
-- **Novice-Friendly, Emoji-Free Admin UX and Volunteer Photo Studio** (`src/lib/admin-auth.ts`, `/login`, `/admin`, `/admin/photos`): Separates full administration (`ADMIN_PASSWORD` -> `/admin`) from volunteer album uploads (`PHOTO_ADMIN_PASSWORD` -> `/admin/photos`), with an uncluttered menu grid, persistent `큰 글씨` mode, password `글자 보기` + Korean/`Caps Lock` keyboard warnings, staged album file protection, live `Supabase` quota bars, and zero OS-dependent emojis for clean Windows rendering.
-- **Editable Hero Backgrounds, Popup Notices, and Share Preview** (`src/components/AdminStudio.tsx`, `src/components/AdminPopupStudio.tsx`, `/admin?tab=popups`, `/admin?tab=hero-cube`): Lets staff post scheduled poster or text popups (`오늘 하루 보지 않기` supported) and replace the main sanctuary background, KakaoTalk/SMS OpenGraph share image, middle community photo, subpage banner, logo, and 3D cube photos with 1-click restore to defaults.
+- **Novice-Friendly, Emoji-Free Admin UX and Volunteer Photo Studio** (`src/lib/admin-auth.ts`, `/login`, `/admin`, `/admin/photos`): Separates full administration (`ADMIN_PASSWORD` -> `/admin`) from volunteer album uploads (`PHOTO_ADMIN_PASSWORD` -> `/admin/photos`), with an uncluttered menu grid, persistent `큰 글씨` mode, password `글자 보기` with Korean and `Caps Lock` keyboard warnings, staged album file protection, live `Supabase` quota bars, and zero OS-dependent emojis for clean Windows rendering.
+- **Editable Hero Backgrounds, Popup Notices, and Share Preview** (`src/components/AdminStudio.tsx`, `src/components/AdminPopupStudio.tsx`, `/admin?tab=popups`, `/admin?tab=hero-cube`): Lets staff post scheduled poster or text popups (`오늘 하루 보지 않기` supported) and replace the main sanctuary background, KakaoTalk and SMS OpenGraph share image, middle community photo, subpage banner, logo, and 3D cube photos with 1-click restore to defaults.
 - **iPhone `.heic` and `50 MB` Video Direct Upload** (`src/lib/client-upload.ts`, `src/app/api/upload/presign/route.ts`): Converts `.heic` photos in the browser and uploads media directly to `Supabase` Storage via signed `PUT` URLs with binary magic-byte verification.
 - **No-Code Menus, Custom Boards, and Zero-API Assistant** (`src/components/AdminMenusAndBoardsStudio.tsx`, `src/components/AdminSmartAssistant.tsx`): Create custom ministry boards (such as `/boards/dormitory`), move posts across 7+ boards, receive Newcomer inquiries (`/contact`), export 1-click JSON backups, and consult an offline Korean admin guide bot.
 
@@ -61,7 +61,7 @@ AGENTS.md와 docs/BUILD-PROCESS-AND-AI-GUIDE.md를 먼저 읽고 이 저장소�
 
 ## 2. 한국 교회 사역 맞춤형 주요 기능
 
-- **한글 주보 자동 추출 및 게시 전 오탈자 점검** (`.hwp`, `.hwpx`, `src/lib/hwp-parser.ts`, `src/lib/bulletin-typo-checker.ts`, `/admin?tab=bulletin`): 매주 작성하시는 한글 주보 파일을 그대로 올리면 예배 순서, 설교 본문, 분리된 **교회 소식**과 **교회 일정**, 축하 소식을 자동 추출하며 게시 전에 날짜 및 호수 중복과 자주 틀리는 맞춤법 오타를 노란 형광펜으로 표시해 한 번에 바로잡을 수 있습니다.
+- **한글 주보 자동 추출, 오탈자 점검, 일정 및 팝업 연동** (`.hwp`, `.hwpx`, `src/lib/hwp-parser.ts`, `src/lib/bulletin-typo-checker.ts`, `src/lib/bulletin-sync-extractor.ts`, `/admin?tab=bulletin`): 매주 작성하시는 한글 주보 파일을 그대로 올리면 예배 순서, 설교 본문, 분리된 **교회 소식**과 **교회 일정**, 축하 소식을 자동 추출하며 게시 전 오탈자 점검은 물론 주보 속 행사 일정, 첫 화면 팝업 공지, 상단 한 줄 알림 후보를 미리 보여 주고 **`최종 확인 후 추가하기`**를 누를 때 한 번에 반영합니다.
 - **유튜브 설교 채널 원클릭 연동** (`src/app/api/youtube-sync/route.ts`, `/admin?tab=sermons`): 별도 `API` 키 발급 없이 교회 유튜브 `@채널주소`만으로 최신 설교 영상을 불러오고 예배 구분을 자동 분류합니다.
 - **초보자 친화형 무이모지 관리자 화면 및 2종 권한 분리** (`src/lib/admin-auth.ts`, `/login`, `/admin`, `/admin/photos`): 전체 사역을 관리하는 **사이트 관리자** (`admin`)와 앨범 등록만 허용하는 **사진 업로드 전용** (`photo`) 계정을 분리했습니다. 불필요한 설명 문구와 윈도우에서 깨지기 쉬운 이모지를 배제한 직관적 메뉴판, `큰 글씨` 유지 모드, 비밀번호 `글자 보기` 및 한글 입력 경고, 실시간 `Supabase` 용량 표시를 지원합니다.
 - **팝업 공지 및 대표 배경 사진 교체** (`src/components/AdminPopupStudio.tsx`, `src/components/AdminStudio.tsx`, `/admin?tab=popups`, `/admin?tab=hero-cube`): 부흥회 포스터나 긴급 안내 팝업(`오늘 하루 보지 않기` 및 종료일 자동 만료 지원)을 띄우고, 첫 화면 상단 본당 배경, 카카오톡 링크 공유 대표 사진, 중간 공동체 소개 사진, 세부 화면 상단 배너, 로고, 3D 큐브 사진을 클릭만으로 교체할 수 있습니다.

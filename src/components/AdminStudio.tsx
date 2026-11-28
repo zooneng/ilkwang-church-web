@@ -15,6 +15,7 @@ import {
   AdminSmartAssistant,
   type AssistantJumpTarget,
 } from "@/components/AdminSmartAssistant";
+import { BulletinSyncModal } from "@/components/BulletinSyncModal";
 import { StaffPhotoCropModal } from "@/components/StaffPhotoCropModal";
 import { uploadAssetClient } from "@/lib/client-upload";
 import { isPopupCurrentlyLive } from "@/lib/popup-utils";
@@ -42,6 +43,7 @@ import {
   normalizeSermonServiceType,
 } from "@/lib/sermon-utils";
 import type {
+  BulletinItem,
   CareerEntry,
   CommunityDepartment,
   CommunityPost,
@@ -535,6 +537,26 @@ export function AdminStudio({
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(
     null
   );
+
+  const [bulletinSyncSession, setBulletinSyncSession] = useState<{
+    readonly sessionKey: string;
+    readonly initialBulletinId?: string;
+    readonly overrideBulletin?: BulletinItem;
+    readonly autoPromptNotice?: string;
+  } | null>(null);
+
+  function openBulletinSyncModal(options?: {
+    readonly bulletinId?: string;
+    readonly overrideBulletin?: BulletinItem;
+    readonly autoPromptNotice?: string;
+  }) {
+    setBulletinSyncSession({
+      sessionKey: createClientSafeId("bul-sync"),
+      initialBulletinId: options?.bulletinId,
+      overrideBulletin: options?.overrideBulletin,
+      autoPromptNotice: options?.autoPromptNotice,
+    });
+  }
 
   // Unified Creation Card States Across All Collection Modules
   // 1) Notices (/admin?tab=notices)
@@ -2534,9 +2556,20 @@ export function AdminStudio({
 
                 {/* Section 2: Boards & News */}
                 <section className="space-y-3">
-                  <h2 className="text-base sm:text-lg font-black text-[#1a2744] px-1">
-                    소식 및 게시판
-                  </h2>
+                  <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+                    <h2 className="text-base sm:text-lg font-black text-[#1a2744]">
+                      소식 및 게시판
+                    </h2>
+                    {draft.bulletins.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => openBulletinSyncModal()}
+                        className="px-4 py-2 rounded-full bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs sm:text-sm font-black shadow-xs transition-colors"
+                      >
+                        주보로 일정 및 팝업 추가
+                      </button>
+                    )}
+                  </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <button
                       type="button"
@@ -3481,6 +3514,7 @@ export function AdminStudio({
               setToastMessage(null);
               setErrorMessage(msg);
             }}
+            onOpenBulletinSync={openBulletinSyncModal}
           />
         )}
 
@@ -3965,13 +3999,24 @@ export function AdminStudio({
                 <h2 className="text-lg sm:text-xl font-black text-[#1a2744]">
                   새 행사 일정 등록
                 </h2>
-                <Link
-                  href="/news/events"
-                  target="_blank"
-                  className="px-3.5 py-1.5 rounded-full bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0"
-                >
-                  행사 안내 화면 보기 ↗
-                </Link>
+                <div className="flex flex-wrap items-center gap-2">
+                  {draft.bulletins.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => openBulletinSyncModal()}
+                      className="px-3.5 py-1.5 rounded-full bg-[#1a2744] hover:bg-[#2E7D32] text-white text-xs font-black transition-colors whitespace-nowrap shrink-0"
+                    >
+                      주보에서 불러오기
+                    </button>
+                  )}
+                  <Link
+                    href="/news/events"
+                    target="_blank"
+                    className="px-3.5 py-1.5 rounded-full bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0"
+                  >
+                    행사 안내 화면 보기 ↗
+                  </Link>
+                </div>
               </div>
 
               <div className="bg-[#F8FAF8] p-4 rounded-xl border border-gray-200 space-y-3.5">
@@ -4408,6 +4453,7 @@ export function AdminStudio({
               setToastMessage(null);
               setErrorMessage(msg);
             }}
+            onOpenBulletinSync={() => openBulletinSyncModal()}
           />
         )}
 
@@ -4427,13 +4473,24 @@ export function AdminStudio({
                     등록한 알림 문구들이 홈페이지 최상단 바에서 순서대로 돌아가며 표시됩니다.
                   </p>
                 </div>
-                <Link
-                  href="/"
-                  target="_blank"
-                  className="px-3.5 py-1.5 rounded-full bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0"
-                >
-                  메인 화면 보기 ↗
-                </Link>
+                <div className="flex flex-wrap items-center gap-2">
+                  {draft.bulletins.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => openBulletinSyncModal()}
+                      className="px-3.5 py-1.5 rounded-full bg-[#1a2744] hover:bg-[#2E7D32] text-white text-xs font-black transition-colors whitespace-nowrap shrink-0"
+                    >
+                      주보에서 불러오기
+                    </button>
+                  )}
+                  <Link
+                    href="/"
+                    target="_blank"
+                    className="px-3.5 py-1.5 rounded-full bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white text-xs font-bold transition-colors whitespace-nowrap shrink-0"
+                  >
+                    메인 화면 보기 ↗
+                  </Link>
+                </div>
               </div>
 
               <div className="bg-[#F8FAF8] p-4 rounded-xl border border-gray-200 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
@@ -9048,6 +9105,22 @@ export function AdminStudio({
         onNavigateTab={handleAssistantJump}
         onInsertNoticeDraft={handleInsertNoticeDraftFromAssistant}
       />
+
+      {bulletinSyncSession && (
+        <BulletinSyncModal
+          key={bulletinSyncSession.sessionKey}
+          draft={draft}
+          saving={saving}
+          initialBulletinId={bulletinSyncSession.initialBulletinId}
+          overrideBulletin={bulletinSyncSession.overrideBulletin}
+          autoPromptNotice={bulletinSyncSession.autoPromptNotice}
+          onClose={() => setBulletinSyncSession(null)}
+          onConfirmSave={async (nextContent, toastMsg) => {
+            await handleSave(nextContent, toastMsg);
+          }}
+          onUploadImage={(file, label) => uploadAsset(file, "notices", label)}
+        />
+      )}
 
       {staffCropSession && (
         <StaffPhotoCropModal

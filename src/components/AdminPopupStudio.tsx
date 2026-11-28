@@ -28,6 +28,7 @@ interface AdminPopupStudioProps {
     readonly sizeLabel: string;
   } | null>;
   readonly onError: (msg: string) => void;
+  readonly onOpenBulletinSync?: () => void;
 }
 
 const POPUP_IMAGE_ACCEPT = "image/*,.jpg,.jpeg,.png,.webp,.heic,.heif";
@@ -77,6 +78,7 @@ export function AdminPopupStudio({
   onSaveImmediate,
   onUploadImage,
   onError,
+  onOpenBulletinSync,
 }: AdminPopupStudioProps) {
   const todayIso = getKstDateString();
   const upcomingSunday = getUpcomingSundayIso(todayIso);
@@ -215,13 +217,24 @@ export function AdminPopupStudio({
           <h2 className="text-xl sm:text-2xl font-black text-[#1a2744]">
             새 팝업 등록
           </h2>
-          <Link
-            href="/"
-            target="_blank"
-            className="px-4 py-2 rounded-full bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white text-xs sm:text-sm font-bold transition-colors whitespace-nowrap shrink-0"
-          >
-            메인 화면 보기
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            {onOpenBulletinSync && draft.bulletins.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onOpenBulletinSync()}
+                className="px-4 py-2 rounded-full bg-[#1a2744] hover:bg-[#2E7D32] text-white text-xs sm:text-sm font-black transition-colors whitespace-nowrap shrink-0"
+              >
+                주보에서 불러오기
+              </button>
+            )}
+            <Link
+              href="/"
+              target="_blank"
+              className="px-4 py-2 rounded-full bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#2E7D32] hover:text-white text-xs sm:text-sm font-bold transition-colors whitespace-nowrap shrink-0"
+            >
+              메인 화면 보기
+            </Link>
+          </div>
         </div>
 
         <div className="bg-[#F8FAF8] rounded-2xl border border-gray-200 p-4 sm:p-5 space-y-4">
